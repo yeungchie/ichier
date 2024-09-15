@@ -5,6 +5,8 @@ from .net import Net, NetCollection
 from .terminal import Terminal, TerminalCollection
 from .design import Design
 
+from .parser.spice import fromFile as fromSpice
+
 __version__ = "0.0.1"
 
 __all__ = [
@@ -18,4 +20,5 @@ __all__ = [
     "Terminal",
     "TerminalCollection",
     "ParameterCollection",
+    "fromSpice",
 ]
