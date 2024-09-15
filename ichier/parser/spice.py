@@ -1,7 +1,7 @@
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
+from icutils.data import DataIterator
 import ichier
-from .utils import DataIterator
 
 
 class SpiceFormatError(Exception):
