@@ -20,7 +20,6 @@ class TestFig:
         assert isinstance(d, Design)
         assert isinstance(d.modules, ModuleCollection)
         assert isinstance(d.parameters, ParameterCollection)
-        return d
 
     def test_create_module(self):
         name = "module"
@@ -31,7 +30,6 @@ class TestFig:
         assert isinstance(m.terminals, TerminalCollection)
         assert isinstance(m.nets, NetCollection)
         assert isinstance(m.parameters, ParameterCollection)
-        return m
     
     def test_create_instance(self):
         name = "instance"
