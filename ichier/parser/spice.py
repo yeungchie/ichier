@@ -1,6 +1,6 @@
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
-from icutk.data import DataIterator
+from icutk.string import LineIterator
 import ichier
 
 
@@ -26,7 +26,7 @@ def fromFile(file: str) -> ichier.Design:
 
 
 def fromIterable(data: Iterable) -> ichier.Design:
-    data = DataIterator(data)
+    data = LineIterator(data)
     design = ichier.Design()
     for line in data:
         # subckt
@@ -48,9 +48,9 @@ def subcktParser(strings: Sequence[str]) -> ichier.Module:
     instances: Dict[str, ichier.Instance] = {}
     parameters: Dict[str, str] = {}
 
-    data = DataIterator(strings, chomp=True)
+    data = LineIterator(strings, chomp=True)
 
-    def skipInvalid(data: DataIterator) -> None:
+    def skipInvalid(data: LineIterator) -> None:
         for line in data:
             if line.strip() == "":
                 continue  # 跳过空行
@@ -125,7 +125,7 @@ def subcktParser(strings: Sequence[str]) -> ichier.Module:
     )
 
 
-def __subcktPinInfoParser(data: DataIterator) -> Dict[str, str]:
+def __subcktPinInfoParser(data: LineIterator) -> Dict[str, str]:
     """
     `*.PININFO A:I B:I Y:O VDD:B VSS:B`
     """
@@ -141,7 +141,7 @@ def __subcktPinInfoParser(data: DataIterator) -> Dict[str, str]:
     return pininfo
 
 
-def __subcktParamParser(data: DataIterator) -> Dict[str, str]:
+def __subcktParamParser(data: LineIterator) -> Dict[str, str]:
     """
     `.PARAMS A=1 B=2 C=3`
     """
@@ -154,7 +154,7 @@ def __subcktParamParser(data: DataIterator) -> Dict[str, str]:
 
 
 def __subcktInstanceParser(
-    data: DataIterator,
+    data: LineIterator,
 ) -> Tuple[ichier.Instance, List[str]]:
     """
     1. active device / connect by order:
