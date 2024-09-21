@@ -3,6 +3,11 @@ from typing import Any, Dict, Iterable, Literal
 import ichier
 from ichier.fig import Fig, FigCollection
 
+__all__ = [
+    "Module",
+    "ModuleCollection",
+]
+
 
 class Module(Fig):
     def __init__(

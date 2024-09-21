@@ -3,6 +3,11 @@ from typing import Any, Dict
 import ichier
 from .fig import Fig, FigCollection
 
+__all__ = [
+    "Net",
+    "NetCollection",
+]
+
 
 class Net(Fig):
     def __init__(self, name: str) -> None:

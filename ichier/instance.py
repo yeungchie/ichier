@@ -3,6 +3,11 @@ from typing import Any, Iterable, Dict, Tuple, Union
 import ichier
 from .fig import Fig, FigCollection
 
+__all__ = [
+    "Instance",
+    "InstanceCollection",
+]
+
 
 class Instance(Fig):
     def __init__(

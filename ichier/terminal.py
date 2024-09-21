@@ -4,6 +4,11 @@ from typing_extensions import Literal, Optional
 from .fig import Fig, FigCollection
 from .errors import TerminalError
 
+__all__ = [
+    "Terminal",
+    "TerminalCollection",
+]
+
 
 class Terminal(Fig):
     def __init__(

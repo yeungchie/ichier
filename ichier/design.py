@@ -5,6 +5,10 @@ from uuid import uuid4
 import ichier
 from .fig import Fig
 
+__all__ = [
+    "Design",
+]
+
 
 class Design(Fig):
     def __init__(

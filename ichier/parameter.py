@@ -2,6 +2,10 @@ from typing import Any, Dict
 
 from .fig import Collection
 
+__all__ = [
+    "ParameterCollection",
+]
+
 
 class ParameterCollection(Collection):
     def __repr__(self) -> str:
