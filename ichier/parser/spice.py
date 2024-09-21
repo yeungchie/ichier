@@ -60,19 +60,6 @@ def subcktParser(strings: Sequence[str]) -> ichier.Module:
 
     data = LineIterator(strings, chomp=True)
 
-    def skipInvalid(data: LineIterator) -> None:
-        for line in data:
-            if line.strip() == "":
-                continue  # 跳过空行
-            elif line.startswith("*"):
-                if line.upper().startswith("*.PININFO"):
-                    data.revert()
-                    break
-                else:
-                    continue  # 跳过其他注释
-            else:
-                data.revert()  # 匹配到其他有效信息回退一行
-
     line = data.next
     if not line.upper().startswith(".SUBCKT"):
         # 第一行开头不是 .SUBCKT 说明不是有效的 subckt 定义
