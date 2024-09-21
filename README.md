@@ -1,4 +1,4 @@
-# <span style="color:red"><u>I</u></span>ntegrated <span style="color:red"><u>C</u></span>ircuit <span style="color:red"><u>Hier</u></span>archy
+<h1 align="center"><span style="color:red"><u>I</u></span>ntegrated <span style="color:red"><u>C</u></span>ircuit <span style="color:red"><u>Hier</u></span>archy</h1>
 
 ## 做什么用？
 
