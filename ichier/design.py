@@ -3,10 +3,11 @@ from typing_extensions import Literal
 from uuid import uuid4
 
 import ichier
-from .fig import Fig
+from .fig import Fig, FigCollection
 
 __all__ = [
     "Design",
+    "DesignCollection",
 ]
 
 
@@ -22,6 +23,7 @@ class Design(Fig):
         self.name = name
         self.__modules = ichier.ModuleCollection(self, modules)
         self.__parameters = ichier.ParameterCollection(parameters)
+        self.__includes = DesignCollection(self)
 
     @property
     def modules(self) -> ichier.ModuleCollection:
@@ -30,6 +32,10 @@ class Design(Fig):
     @property
     def parameters(self) -> ichier.ParameterCollection:
         return self.__parameters
+
+    @property
+    def includes(self) -> "DesignCollection":
+        return self.__includes
 
     def summary(
         self,
@@ -49,3 +55,9 @@ class Design(Fig):
             }
         else:
             raise ValueError("Invalid type")
+
+
+class DesignCollection(FigCollection):
+    def _valueChecker(self, value: Design) -> None:
+        if not isinstance(value, Design):
+            raise TypeError("value must be a Design")

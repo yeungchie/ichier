@@ -3,12 +3,13 @@ from .instance import Instance, InstanceCollection
 from .module import Module, ModuleCollection
 from .net import Net, NetCollection
 from .terminal import Terminal, TerminalCollection
-from .design import Design
+from .design import Design, DesignCollection
 
 __version__ = "0.0.1"
 
 __all__ = [
     "Design",
+    "DesignCollection",
     "Module",
     "ModuleCollection",
     "Instance",
