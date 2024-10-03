@@ -27,3 +27,7 @@ build:
 
 upload: dist
 	$(PY) -m twine upload dist/*
+
+iv:
+	iverilog -o test.vvp.tmp ./tmp/netlist/test.v
+	rm -f test.vvp.tmp
