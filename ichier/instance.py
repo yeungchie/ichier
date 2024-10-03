@@ -43,19 +43,19 @@ class Instance(Fig):
         self,
         value: Union[Iterable[str], Dict[str, str]],
     ) -> None:
-        if isinstance(value, Iterable):
+        if isinstance(value, dict):
+            for net, term in value.items():
+                if not isinstance(net, str) or not isinstance(term, str):
+                    raise TypeError(
+                        f"connection must be a dict of str:str pairs - {repr(net)}:{repr(term)}"
+                    )
+            self.__connection = value
+        elif isinstance(value, Iterable):
             value = tuple(value)
             for net in value:
                 if not isinstance(net, str):
                     raise TypeError(
                         f"connection must be a iterable of strings - {repr(net)}"
-                    )
-            self.__connection = value
-        elif isinstance(value, dict):
-            for net, term in value.items():
-                if not isinstance(net, str) or not isinstance(term, str):
-                    raise TypeError(
-                        f"connection must be a dict of str:str pairs - {repr(net)}:{repr(term)}"
                     )
             self.__connection = value
         else:
