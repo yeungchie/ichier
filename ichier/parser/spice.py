@@ -3,15 +3,7 @@ from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 from icutk.string import LineIterator
 import ichier
 
-__all__ = [
-    "SpiceFormatError",
-    "SpiceSubcktError",
-    "SpicePinInfoError",
-    "SpiceInstanceError",
-    "fromFile",
-    "fromIterable",
-    "subcktParser",
-]
+__all__ = []
 
 
 class SpiceFormatError(Exception):
@@ -32,7 +24,13 @@ class SpiceInstanceError(SpiceFormatError):
 
 def fromFile(file: str) -> ichier.Design:
     with open(file, "r", encoding="utf-8") as f:
-        return fromIterable(f)
+        design = fromIterable(f)
+    design.name = file
+    return design
+
+
+def fromString(string: str) -> ichier.Design:
+    return fromIterable(string.splitlines())
 
 
 def fromIterable(data: Iterable) -> ichier.Design:

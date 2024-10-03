@@ -6,9 +6,7 @@ from icutk.string import evalToBasicType
 
 import ichier
 
-__all__ = [
-    "VerilogLexer",
-]
+__all__ = []
 
 
 class VerilogLexer(BaseLexer):
@@ -258,13 +256,13 @@ def flattenMemberName(s: str) -> Tuple[str, ...]:
 def fromFile(file: str) -> ichier.Design:
     with open(file, "r") as f:
         text = f.read()
-    design = fromText(text)
+    design = fromString(text)
     design.name = file
     return design
 
 
-def fromText(text: str) -> ichier.Design:
-    lexer = VerilogLexer(text)
+def fromString(string: str) -> ichier.Design:
+    lexer = VerilogLexer(string)
 
     module_tokens = []
     module_inside = False
