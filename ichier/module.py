@@ -1,4 +1,5 @@
-from typing import Any, Dict, Iterable, Literal
+from typing import Any, Dict, Iterable
+from typing_extensions import Literal
 
 import ichier
 from ichier.fig import Fig, FigCollection
