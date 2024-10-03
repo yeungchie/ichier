@@ -1,5 +1,5 @@
 from .spice import fromFile as fromSpice
-from .spice import fromFile as fromVerilog
+from .verilog import fromFile as fromVerilog
 
 __all__ = [
     "fromSpice",
