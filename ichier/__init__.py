@@ -11,6 +11,7 @@ __author__ = f"{release.author} <{release.email}>"
 __license__ = release.license
 __version__ = release.version
 __url__ = release.url
+__copyright__ = release.copyright
 
 __all__ = [
     "Design",
