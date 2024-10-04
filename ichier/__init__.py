@@ -5,7 +5,12 @@ from .net import Net, NetCollection
 from .terminal import Terminal, TerminalCollection
 from .design import Design, DesignCollection
 
-__version__ = "0.0.1"
+from . import release
+
+__author__ = f"{release.author} <{release.email}>"
+__license__ = release.license
+__version__ = release.version
+__url__ = release.url
 
 __all__ = [
     "Design",

@@ -9,19 +9,19 @@ import ichier
 VERSION = ichier.__version__
 DESCRIPTION = "Integrated Circuit Hierarchy"
 PROJECT = "ichier"
-AUTHOR = "YEUNGCHIE"
+AUTHOR = ichier.__author__
 
 setup(
     name=PROJECT,
     version=VERSION,
     author=AUTHOR,
     description=DESCRIPTION,
-    long_description=Path("README.md").read_text(),
+    long_description=Path("README.md").read_text("utf-8"),
     long_description_content_type="text/markdown",
     url=f"https://github.com/{AUTHOR.lower()}/{PROJECT}",
     packages=find_packages(exclude=["tests"]),
     python_requires=">=3.7",
-    install_requires=Path("requirements.txt").read_text().split(),
+    install_requires=Path("requirements.txt").read_text("utf-8").split(),
     keywords=[
         PROJECT,
         "ic",
