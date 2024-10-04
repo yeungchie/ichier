@@ -44,8 +44,7 @@ class Design(Fig):
         if info_type == "compact":
             return {
                 "name": self.name,
-                "parameters": len(self.parameters),
-                "modules": self.modules.summary(info_type=info_type),
+                "modules": len(self.modules),
             }
         elif info_type == "detail":
             return {
