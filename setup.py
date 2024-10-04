@@ -20,7 +20,7 @@ setup(
     long_description_content_type="text/markdown",
     url=f"https://github.com/{AUTHOR.lower()}/{PROJECT}",
     packages=find_packages(exclude=["tests"]),
-    python_requires=">=3.7",
+    python_requires=">=3.8",
     install_requires=Path("requirements.txt").read_text("utf-8").split(),
     keywords=[
         PROJECT,
@@ -32,7 +32,6 @@ setup(
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.12",
         "License :: OSI Approved :: GNU Affero General Public License v3",
