@@ -192,24 +192,24 @@ class InstanceLexer(BaseLexer):
         return t
 
     __cnp = r"\w+(\s*\[\s*\d+(\s*\:\s*\d+)?\s*\])?"  # connection net pattern
-    __cbnp = rf"\.(\w+)\s*\(\s*({__cnp})\s*\)"  # connection by name pattern
+    __ccnp = rf"{{?\s*{__cnp}(\s*,\s*{__cnp})*\s*}}?"  # combo connection net pattern
+    __cbnp = rf"\.(\w+)\s*\(\s*({__ccnp})\s*\)"  # connection by name pattern
 
     @TOKEN(r"(?<!\#)" rf"\(\s*{__cbnp}(\s*,\s*{__cbnp})*\s*\)\s*;")
     def t_CONNECTION_INFO_BY_NAME(self, t: LexToken):
         connect: Dict[str, str] = {}
         for m in re.finditer(self.__cbnp, t.value[:-1].rstrip()[1:-1]):
-            term = m.group(1)
-            for net in flattenMemberName(m.group(2)):
-                connect[re.sub(r"^\w+", term, net)] = net
-            # connect[m.group(1)] = m.group(2)
+            connect[m.group(1)] = m.group(2)
         t.value = connect
         return t
 
-    @TOKEN(r"(?<!\#)" rf"\(\s*{__cnp}(\s*,\s*{__cnp})*\s*\)\s*;")
+    __ccnp_cnp = rf"({__ccnp}|{__cnp})"  # combo or no
+
+    @TOKEN(r"(?<!\#)" rf"\(\s*{__ccnp_cnp}(\s*,\s*{__ccnp_cnp})*\s*\)\s*;")
     def t_CONNECTION_INFO_BY_ORDER(self, t: LexToken):
         nets = []
-        for item in t.value[:-1].rstrip()[1:-1].split(","):
-            nets += flattenMemberName(item)
+        for m in re.finditer(self.__ccnp_cnp, t.value[:-1].rstrip()[1:-1]):
+            nets.append(m.group(1).strip())
         t.value = nets
         return t
 
