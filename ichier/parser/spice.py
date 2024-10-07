@@ -184,19 +184,27 @@ def __subcktInstanceParser(
         if tokens[1] == "/":
             # X4 / INV $PINS A=IN VDD=VDD VSS=VSS Z=OUT
             ref_name = tokens[2]
-            if not tokens[3].upper().startswith("$PINS"):
-                raise SpiceInstanceError(
-                    f"Invalid instance definition at line {data.line}:\n>>> {' '.join(tokens)}"
-                )
             connect_info = {}
             for token in tokens[4:]:
                 if "=" in token:
                     term, net = token.split("=")
                     connect_info[term] = net
-        else:
+        elif tokens[-2] == "/":
             # X3 IN VDD VSS OUT / INV
             ref_name = tokens[-1]
             connect_info = tokens[1:-2]
+        else:
+            raise SpiceInstanceError(
+                f"Invalid instance definition at line {data.line}:\n>>> {' '.join(tokens)}"
+            )
+    elif set(("$pins", "$PINS")) & set(tokens):
+        # X4 INV $PINS A=IN VDD=VDD VSS=VSS Z=OUT
+        ref_name = tokens[1]
+        connect_info = {}
+        for token in tokens[2:]:
+            if "=" in token:
+                term, net = token.split("=")
+                connect_info[term] = net
     else:
         # X1 Y A VSS VSS nmos m=1
         # X2 A VSS $[res] w=1 l=2
