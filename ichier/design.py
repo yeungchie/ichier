@@ -1,5 +1,4 @@
-from typing import Any, Dict, Iterable, Optional
-from typing_extensions import Literal
+from typing import Any, Dict, Iterable, Optional, Literal
 from uuid import uuid4
 
 import ichier

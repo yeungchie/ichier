@@ -1,5 +1,4 @@
-from typing import Any, Dict
-from typing_extensions import Literal, Optional
+from typing import Any, Dict, Optional, Literal
 
 from .fig import Fig, FigCollection
 from .errors import TerminalError

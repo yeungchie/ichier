@@ -1,2 +1,1 @@
 icutk>=0.2.6
-typing_extensions>=4.7.1

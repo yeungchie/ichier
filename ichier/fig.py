@@ -1,5 +1,4 @@
-from typing import Any, Iterable, Optional, Union
-from typing_extensions import Self
+from typing import Any, Iterable, Optional, Union, Self
 
 import ichier
 
