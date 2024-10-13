@@ -1,4 +1,4 @@
-from typing import Any, Iterable, Dict, Tuple, Union
+from typing import Any, Iterable, Dict, Iterator, Tuple, Union
 
 import ichier
 from .fig import Fig, FigCollection
@@ -79,6 +79,9 @@ class InstanceCollection(FigCollection):
     def _valueChecker(self, fig: Instance) -> None:
         if not isinstance(fig, Instance):
             raise TypeError("fig must be an Instance object")
+
+    def __iter__(self) -> Iterator[Instance]:
+        return iter(self.figs)
 
     def summary(self) -> Dict[str, Any]:
         cate = {}

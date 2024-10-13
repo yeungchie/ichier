@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Literal
+from typing import Any, Dict, Iterator, Optional, Literal
 
 from .fig import Fig, FigCollection
 from .errors import TerminalError
@@ -55,6 +55,9 @@ class TerminalCollection(FigCollection):
     def _valueChecker(self, fig: Terminal) -> None:
         if not isinstance(fig, Terminal):
             raise TypeError("fig must be an Terminal object")
+
+    def __iter__(self) -> Iterator[Terminal]:
+        return iter(self.figs)
 
     def summary(self) -> Dict[str, Any]:
         return {

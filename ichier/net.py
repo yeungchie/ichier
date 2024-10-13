@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any, Dict, Iterator
 
 import ichier
 from .fig import Fig, FigCollection
@@ -34,6 +34,9 @@ class NetCollection(FigCollection):
     def _valueChecker(self, fig: Net) -> None:
         if not isinstance(fig, Net):
             raise TypeError("fig must be an Net object")
+
+    def __iter__(self) -> Iterator[Net]:
+        return iter(self.figs)
 
     def summary(self) -> Dict[str, Any]:
         return {

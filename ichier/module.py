@@ -1,4 +1,4 @@
-from typing import Any, Dict, Iterable, Literal
+from typing import Any, Dict, Iterable, Iterator, Literal
 
 import ichier
 from ichier.fig import Fig, FigCollection
@@ -68,6 +68,9 @@ class ModuleCollection(FigCollection):
     def _valueChecker(self, value: Module) -> None:
         if not isinstance(value, Module):
             raise TypeError("value must be a Module")
+
+    def __iter__(self) -> Iterator[Module]:
+        return iter(self.figs)
 
     def summary(
         self, info_type: Literal["compact", "detail"] = "compact"
