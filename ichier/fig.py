@@ -1,4 +1,5 @@
 from typing import Any, Iterable, Optional, Union, Self
+import re
 
 import ichier
 
@@ -114,6 +115,14 @@ class Collection(dict):
     def __ior__(self, other: dict) -> Self:
         self.update(other)
         return self
+
+    def find(self, name: str, ignorecase: bool = False) -> dict:
+        result = {}
+        pattern = re.compile(name, re.IGNORECASE if ignorecase else 0)
+        for key, value in self.items():
+            if pattern.fullmatch(key):
+                result[key] = value
+        return result
 
 
 class FigCollection(Collection):
