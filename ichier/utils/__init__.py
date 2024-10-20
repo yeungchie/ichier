@@ -1,6 +1,6 @@
 from typing import Dict, Iterable, List, Optional, Union
 
-from .name_parse import Parser
+from . import name_parse
 from .log import logger
 
 __all__ = [
@@ -11,7 +11,7 @@ __all__ = [
 
 
 def flattenMemName(name: str) -> List[str]:
-    return Parser().parse(name)
+    return name_parse.parse(name)
 
 
 def expandTermNetPairs(
