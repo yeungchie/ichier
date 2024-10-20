@@ -1,7 +1,9 @@
 from typing import Any, Dict, Iterable, Iterator, Literal
 
+
 import ichier
 from ichier.fig import Fig, FigCollection
+from .utils import logger
 
 __all__ = [
     "Module",
@@ -63,6 +65,14 @@ class Module(Fig):
         else:
             raise ValueError("type must be 'compact' or 'detail'")
 
+    def rebuild(self) -> None:
+        """Rebuild the module.
+
+        Rebuild all instances connection, then recreating all nets for this module.
+        """
+        self.instances.rebuild()
+        self.nets.rebuild()
+
 
 class ModuleCollection(FigCollection):
     def _valueChecker(self, value: Module) -> None:
@@ -79,3 +89,8 @@ class ModuleCollection(FigCollection):
             "total": len(self),
             "list": [module.summary(info_type) for module in self.figs],
         }
+
+    def rebuild(self) -> None:
+        for fig in self:
+            logger.info(f"Rebuilding module {fig.name!r} ...")
+            fig.rebuild()
