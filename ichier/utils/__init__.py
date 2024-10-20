@@ -1,8 +1,10 @@
 from typing import Dict, Iterable, List, Optional, Union
 
 from .name_parse import Parser
+from .log import logger
 
 __all__ = [
+    "logger",
     "flattenMemName",
     "expandTermNetPairs",
 ]
