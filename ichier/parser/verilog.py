@@ -1,4 +1,5 @@
 from typing import List, Iterable, Dict, Optional, Tuple, Union
+from pathlib import Path
 import re
 
 from icutk.lex import BaseLexer, tokensToDict, LexToken, TOKEN
@@ -9,7 +10,7 @@ import ichier
 __all__ = []
 
 
-class VerilogLexer(BaseLexer):
+class VerilogParser(BaseLexer):
     tokens = BaseLexer.tokens + [
         "COMMENT_LINE",  # //
         "COMMENT_BLOCK",  # /* */
@@ -29,6 +30,7 @@ class VerilogLexer(BaseLexer):
         "STRING",  # "..."
     ]
 
+    BaseLexer.t_WORD += r"|\\\S+"
     t_COMMENT_LINE = r"//.*"
     t_CONSTRAINT = r"\(\*([^*]|\*[^)])*\*\)"
     t_PREPROCESS = r"`.+"
@@ -86,8 +88,24 @@ class VerilogLexer(BaseLexer):
         t.value = t.value[1:-1]
         return t
 
+    def parse(self) -> "ichier.Design":
+        module_tokens = []
+        module_inside = False
+        modules: List[ichier.Module] = []
+        for token in self:
+            if module_inside:
+                module_tokens.append(token)
+                if token.type == "MODULE_END":
+                    module_inside = False
+                    modules.append(_moduleAnalyser(module_tokens))
+                    module_tokens = []
+            elif token.type == "MODULE_HEAD":
+                module_tokens.append(token)
+                module_inside = True
+        return ichier.Design(modules=modules)
 
-class ModuleHeadLexer(BaseLexer):
+
+class ModuleHeadParser(BaseLexer):
     tokens = BaseLexer.tokens + [
         "MODULE_NAME",  # module name
         "PARAMETER_INFO",  # #( ... )
@@ -108,8 +126,21 @@ class ModuleHeadLexer(BaseLexer):
         t.value = re.sub(r"\(|\)|,|;", " ", t.value).split()
         return t
 
+    def parse(self) -> Tuple[str, List[str]]:
+        name = None
+        ports = []
+        for t in self:
+            if t.type == "MODULE_NAME":
+                if name is None:
+                    name = t.value
+            elif t.type == "PORT_NAMES":
+                ports += t.value
+        if name is None:
+            raise ValueError("Invalid module name")
+        return name, ports
 
-class NetsSplitLexer(BaseLexer):
+
+class NetsSplitParser(BaseLexer):
     tokens = BaseLexer.tokens + [
         "BUS_NET",  # [0:7] name ;
         "MULTI_NET",  # name1, name2, ... ;
@@ -130,11 +161,11 @@ class NetsSplitLexer(BaseLexer):
         return t
 
     def t_MULTI_NET(self, t: LexToken):
-        r"\w+(\s*,\s*\w+)*\s*;"
+        r"(\w+|\\\S+)(\s*,\s*(\w+|\\\S+))*\s*;"
         t.value = re.sub(r",|;", " ", t.value).split()
         return t
 
-    def nets(self) -> List[str]:
+    def parse(self) -> List[str]:
         td = tokensToDict(self)
         mn = td.get("MULTI_NET")
         bn = td.get("BUS_NET")
@@ -152,7 +183,7 @@ class NetsSplitLexer(BaseLexer):
         return nets
 
 
-class InstanceLexer(BaseLexer):
+class InstanceParser(BaseLexer):
     tokens = BaseLexer.tokens + [
         "PARAMETER_INFO_EMPTY",  # #( )
         "CONNECTION_INFO_EMPTY",  # ( );
@@ -191,15 +222,16 @@ class InstanceLexer(BaseLexer):
         t.value = params
         return t
 
-    __cnp = r"\w+(\s*\[\s*\d+(\s*\:\s*\d+)?\s*\])?"  # connection net pattern
+    __cnp = r"(\w+(\[\s*\d+(\s*\:\s*\d+)?\s*\])?|\\\S+)"  # connection net pattern
     __ccnp = rf"{{?\s*{__cnp}(\s*,\s*{__cnp})*\s*}}?"  # combo connection net pattern
     __cbnp = rf"\.(\w+)\s*\(\s*({__ccnp})\s*\)"  # connection by name pattern
 
     @TOKEN(r"(?<!\#)" rf"\(\s*{__cbnp}(\s*,\s*{__cbnp})*\s*\)\s*;")
     def t_CONNECTION_INFO_BY_NAME(self, t: LexToken):
-        connect: Dict[str, str] = {}
+        connect: Dict[str, Union[str, List[str]]] = {}
         for m in re.finditer(self.__cbnp, t.value[:-1].rstrip()[1:-1]):
-            connect[m.group(1)] = m.group(2)
+            connect[m.group(1)] = m.group(2).strip()
+            # connect[m.group(1)] = NameParser().parse(m.group(2).strip())
         t.value = connect
         return t
 
@@ -210,100 +242,70 @@ class InstanceLexer(BaseLexer):
         nets = []
         for m in re.finditer(self.__ccnp_cnp, t.value[:-1].rstrip()[1:-1]):
             nets.append(m.group(1).strip())
+            # nets.append(NameParser().parse(m.group(1).strip()))
         t.value = nets
         return t
 
+    def parse(self) -> "ichier.Instance":
+        td = tokensToDict(self)
+        words = td.get("WORD", [])
+        if len(words) != 2:
+            raise ValueError("Invalid instance definition")
 
-def flattenMemberName(s: str) -> Tuple[str, ...]:
-    if not isinstance(s, str):
-        raise TypeError(f"Invalid member name: {s}")
-    s = s.strip()
-    if s == "":
-        return ()
-    if "," in s:
-        names = []
-        for item in s.split(","):
-            names += flattenMemberName(item)
-        return tuple(names)
-    name_pattern = r"(?P<name>\w+)"
-    slice_pattern = r"\[\s*(?P<start>\d+)(\s*:\s*(?P<end>\d+))?\]"
-    pattern1 = rf"{name_pattern}\s*({slice_pattern})?"
-    pattern2 = rf"({slice_pattern})?\s*{name_pattern}"
-    m = re.fullmatch(pattern1, s) or re.fullmatch(pattern2, s)
-    if m is None:
-        raise ValueError(f"Invalid member name: {s}")
-    name = m.group("name")
-    start = m.group("start")
-    end = m.group("end")
-    if start is None and end is None:
-        return (name,)
-    elif end is None:
-        start = int(start)
-        return (f"{name}[{start}]",)
-    else:
-        reversep = False
-        start = int(start)
-        end = int(end)
-        if start > end:
-            start, end = end, start
-            reversep = True
-        names = [f"{name}[{i}]" for i in range(start, end + 1)]
-        if reversep:
-            names.reverse()
-        return tuple(names)
+        ref, inst = (t.value for t in words)
+
+        connect = ()
+        if td.get("CONNECTION_INFO_EMPTY"):
+            pass
+        else:
+            t = td.get("CONNECTION_INFO_BY_NAME") or td.get("CONNECTION_INFO_BY_ORDER")
+            if t is not None:
+                connect = t[0].value
+
+        params = {}
+        if td.get("PARAMETER_INFO_EMPTY"):
+            pass
+        else:
+            t = td.get("PARAMETER_INFO_BY_NAME")  # or td.get("PARAMETER_INFO_BY_ORDER")
+            if t is not None:
+                params = t[0].value
+
+        return ichier.Instance(
+            name=inst,
+            reference=ref,
+            connection=connect,
+            parameters=params,
+        )
 
 
-def fromFile(file: str) -> ichier.Design:
+def fromFile(file: Union[str, Path], *, name: Optional[str] = None) -> "ichier.Design":
+    file = str(file)
     with open(file, "r") as f:
         text = f.read()
     design = fromString(text)
-    design.name = file
+    design.name = file if name is None else str(name)
     return design
 
 
-def fromString(string: str) -> ichier.Design:
-    lexer = VerilogLexer(string)
-
-    module_tokens = []
-    module_inside = False
-    modules: List[ichier.Module] = []
-
-    for token in lexer:
-        if module_inside:
-            module_tokens.append(token)
-            if token.type == "MODULE_END":
-                module_inside = False
-                modules.append(_moduleAnalyser(module_tokens))
-                module_tokens = []
-        elif token.type == "MODULE_HEAD":
-            module_tokens.append(token)
-            module_inside = True
-    return ichier.Design(modules=modules)
+def fromString(string: str) -> "ichier.Design":
+    return VerilogParser(string).parse()
 
 
-def _moduleAnalyser(tokens: Iterable[LexToken]) -> ichier.Module:
+def _moduleAnalyser(tokens: Iterable[LexToken]) -> "ichier.Module":
     td = tokensToDict(tokens)
 
     # module head
     module_head = td.get("MODULE_HEAD")
     if module_head is None:
         raise ValueError("Invalid module head")
-    head_td = tokensToDict(ModuleHeadLexer(module_head[0].value))
+    module_name, module_ports = ModuleHeadParser(module_head[0].value).parse()
 
-    ## module name
-    module_name = head_td.get("MODULE_NAME")
-    if module_name is None:
-        raise ValueError("Invalid module name")
-    module_name = module_name[0].value
-
-    ## module ports
-    module_ports = head_td.get("PORT_NAMES")
+    # terminals
     terminals: List[ichier.Terminal] = []
-    if module_ports is not None:
+    if module_ports:
         port_dir: Dict[str, Optional[str]] = {}
-        for t in module_ports:
-            for p in t.value:
-                port_dir[p] = None
+        for p in module_ports:
+            port_dir[p] = None
 
         # input, output, inout
         full_ports = []
@@ -313,7 +315,7 @@ def _moduleAnalyser(tokens: Iterable[LexToken]) -> ichier.Module:
             "inout": "INOUT",
         }.items():
             for t in td.get(token, []):
-                for p in NetsSplitLexer(re.sub(r"^\w+\s*", "", t.value)).nets():
+                for p in NetsSplitParser(re.sub(r"^\w+\s*", "", t.value)).parse():
                     pname = p.partition("[")[0]
                     if pname not in port_dir:
                         raise ValueError(
@@ -337,46 +339,14 @@ def _moduleAnalyser(tokens: Iterable[LexToken]) -> ichier.Module:
             terminals.append(ichier.Terminal(name=p, direction=port_dir[pname]))  # type: ignore
 
     # wire
-    nets: List[ichier.Net] = []
-    for t in td.get("WIRE", []):
-        for n in NetsSplitLexer(re.sub(r"^\w+\s*", "", t.value)).nets():
-            nets.append(ichier.Net(name=n))
+    # nets: List[ichier.Net] = []
+    # for t in td.get("WIRE", []):
+    #     for n in NetsSplitParser(re.sub(r"^\w+\s*", "", t.value)).parse():
+    #         nets.append(ichier.Net(name=n))
 
     return ichier.Module(
         name=module_name,
         terminals=terminals,
-        nets=nets,
-        instances=[_instanceAnalyser(t) for t in td.get("INSTANCE", [])],
-    )
-
-
-def _instanceAnalyser(token: LexToken) -> ichier.Instance:
-    td = tokensToDict(InstanceLexer(token.value))
-    words = td.get("WORD", [])
-    if len(words) != 2:
-        raise ValueError(f'Invalid instance definition\n"""\n{token.value}\n"""')
-
-    ref, inst = (t.value for t in words)
-
-    connect = ()
-    if td.get("CONNECTION_INFO_EMPTY"):
-        pass
-    else:
-        t = td.get("CONNECTION_INFO_BY_NAME") or td.get("CONNECTION_INFO_BY_ORDER")
-        if t is not None:
-            connect = t[0].value
-
-    params = {}
-    if td.get("PARAMETER_INFO_EMPTY"):
-        pass
-    else:
-        t = td.get("PARAMETER_INFO_BY_NAME")  # or td.get("PARAMETER_INFO_BY_ORDER")
-        if t is not None:
-            params = t[0].value
-
-    return ichier.Instance(
-        name=inst,
-        reference=ref,
-        connection=connect,
-        parameters=params,
+        # nets=nets,
+        instances=[InstanceParser(t.value).parse() for t in td.get("INSTANCE", [])],
     )
