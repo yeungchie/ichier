@@ -65,7 +65,7 @@ class Collection(dict):
         self._valueChecker(value)
         self._dict__setitem__(key, value)
 
-    def __getitem__(self, key: Union[int, str]) -> Fig:
+    def __getitem__(self, key: Union[int, str]) -> Any:
         if isinstance(key, int):
             key = tuple(self.keys())[key]
         elif isinstance(key, str):

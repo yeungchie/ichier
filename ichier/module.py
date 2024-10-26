@@ -1,4 +1,4 @@
-from typing import Any, Dict, Iterable, Iterator, Literal
+from typing import Any, Dict, Iterable, Iterator, Literal, Union
 
 
 import ichier
@@ -81,6 +81,9 @@ class ModuleCollection(FigCollection):
 
     def __iter__(self) -> Iterator[Module]:
         return iter(self.figs)
+
+    def __getitem__(self, key: Union[int, str]) -> Module:
+        return super().__getitem__(key)
 
     def summary(
         self, info_type: Literal["compact", "detail"] = "compact"

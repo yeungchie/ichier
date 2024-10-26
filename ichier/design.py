@@ -1,4 +1,4 @@
-from typing import Any, Dict, Iterable, Iterator, Optional, Literal
+from typing import Any, Dict, Iterable, Iterator, Optional, Literal, Union
 from uuid import uuid4
 
 import ichier
@@ -62,3 +62,6 @@ class DesignCollection(FigCollection):
 
     def __iter__(self) -> Iterator[Design]:
         return iter(self.figs)
+
+    def __getitem__(self, key: Union[int, str]) -> Design:
+        return super().__getitem__(key)

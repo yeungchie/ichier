@@ -1,4 +1,4 @@
-from typing import Any, Dict, Iterator
+from typing import Any, Dict, Iterator, Union
 
 import ichier
 from .fig import Fig, FigCollection
@@ -38,6 +38,9 @@ class NetCollection(FigCollection):
 
     def __iter__(self) -> Iterator[Net]:
         return iter(self.figs)
+
+    def __getitem__(self, key: Union[int, str]) -> Net:
+        return super().__getitem__(key)
 
     def summary(self) -> Dict[str, Any]:
         return {

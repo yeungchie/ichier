@@ -1,4 +1,4 @@
-from typing import Any, Dict, Iterator, Optional, Literal
+from typing import Any, Dict, Iterator, Optional, Literal, Union
 
 from .fig import Fig, FigCollection
 from .errors import TerminalError
@@ -58,6 +58,9 @@ class TerminalCollection(FigCollection):
 
     def __iter__(self) -> Iterator[Terminal]:
         return iter(self.figs)
+
+    def __getitem__(self, key: Union[int, str]) -> Terminal:
+        return super().__getitem__(key)
 
     def summary(self) -> Dict[str, Any]:
         return {

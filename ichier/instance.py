@@ -165,6 +165,9 @@ class InstanceCollection(FigCollection):
     def __iter__(self) -> Iterator[Instance]:
         return iter(self.figs)
 
+    def __getitem__(self, key: Union[int, str]) -> Instance:
+        return super().__getitem__(key)
+
     def summary(self) -> Dict[str, Any]:
         cate = {}
         for fig in self.figs:
