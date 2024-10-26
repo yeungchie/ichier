@@ -14,7 +14,7 @@ class Terminal(Fig):
         self,
         name: str,
         *,
-        direction: Literal["in", "out", "inout"] = "inout",
+        direction: Literal["input", "output", "inout"] = "inout",
         net_name: Optional[str] = None,
     ) -> None:
         self.name = name
@@ -25,13 +25,13 @@ class Terminal(Fig):
         return f"Terminal(name={self.name}, {self.direction})"
 
     @property
-    def direction(self) -> Literal["in", "out", "inout"]:
+    def direction(self) -> Literal["input", "output", "inout"]:
         return self.__direction
 
     @direction.setter
     def direction(self, value) -> None:
-        if value not in ["in", "out", "inout"]:
-            raise ValueError("direction must be 'in', 'out', or 'inout'")
+        if value not in ["input", "output", "inout"]:
+            raise ValueError("direction must be 'input', 'output', or 'inout'")
         self.__direction = value
 
     @property

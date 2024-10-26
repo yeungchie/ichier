@@ -129,8 +129,8 @@ def __subcktPinInfoParser(data: LineIterator) -> Dict[str, str]:
     for token in text.split()[1:]:
         term, dir = token.split(":")
         pininfo[term] = {
-            "I": "in",
-            "O": "out",
+            "I": "input",
+            "O": "output",
             "B": "inout",
         }[dir.upper()]
     return pininfo

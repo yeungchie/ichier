@@ -310,8 +310,8 @@ def _moduleAnalyser(tokens: Iterable[LexToken]) -> "ichier.Module":
         # input, output, inout
         full_ports = []
         for dir, token in {
-            "in": "INPUT",
-            "out": "OUTPUT",
+            "input": "INPUT",
+            "output": "OUTPUT",
             "inout": "INOUT",
         }.items():
             for t in td.get(token, []):

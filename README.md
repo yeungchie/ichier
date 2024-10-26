@@ -19,31 +19,9 @@
 pip install ichier -U
 ```
 
-## 从网表读入设计
+## 描述一个电路
 
-+ 解析 SPICE 文件
-
-```python
-from ichier.parser import fromSpice
-design = fromSpice("top.cdl")
-```
-
-+ 解析 Verilog 文件
-
-```python
-from ichier.parser import fromVerilog
-design = fromVerilog("top.v")
-```
-
-> 也可以直接使用 CLI 工具
-
-```shell
-python -m ichier parser spice top.cdl
-```
-
-## 用 Python 构建一个电路网表
-
-> buffer.cdl.py
+> buffer.py
 
 ```python
 from ichier import *
@@ -53,8 +31,8 @@ design = Design(
         Module(
             name="inv",
             terminals=[
-                Terminal(name="A", direction="in"),
-                Terminal(name="Z", direction="out"),
+                Terminal(name="A", direction="input"),
+                Terminal(name="Z", direction="output"),
             ],
         ),
         Module(
@@ -62,12 +40,12 @@ design = Design(
             terminals=[
                 Terminal(
                     name="A",
-                    direction="in",
+                    direction="input",
                     net_name="A",
                 ),
                 Terminal(
                     name="Z",
-                    direction="out",
+                    direction="output",
                     net_name="Z",
                 ),
             ],
@@ -101,7 +79,7 @@ design = Design(
 )
 ```
 
-+ 查询设计信息
++ 查询信息
 
 ```python
 design.modules.figs
@@ -117,6 +95,28 @@ buf.instances.figs
 
 buf.nets.figs
 # (Net(name='A'), Net(name='Z'), Net(name='inter'))
+```
+
+## 从网表读入设计
+
++ 解析 SPICE 文件
+
+```python
+from ichier.parser import fromSpice
+design = fromSpice("top.cdl")
+```
+
++ 解析 Verilog 文件
+
+```python
+from ichier.parser import fromVerilog
+design = fromVerilog("top.v")
+```
+
+> 也可以直接使用 CLI 工具
+
+```shell
+python -m ichier parser spice top.cdl
 ```
 
 ## LICENSE
