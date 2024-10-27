@@ -22,7 +22,7 @@ class Terminal(Fig):
         self.net_name = net_name
 
     def __repr__(self) -> str:
-        return f"Terminal(name={self.name}, {self.direction})"
+        return f"Terminal({self.name!r}, {self.direction!r})"
 
     @property
     def direction(self) -> Literal["input", "output", "inout"]:
