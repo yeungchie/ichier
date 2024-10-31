@@ -1,4 +1,4 @@
-from typing import Any, Iterable, Optional, Union, Self
+from typing import Any, Iterable, Optional, Union
 import re
 
 import ichier
@@ -112,17 +112,25 @@ class Collection(dict):
         result.update(self)
         return result
 
-    def __ior__(self, other: dict) -> Self:
+    def __ior__(self, other: dict) -> "Collection":
         self.update(other)
         return self
 
-    def find(self, name: str, ignorecase: bool = False) -> dict:
+    def find(
+        self,
+        name: str,
+        ignorecase: bool = False,
+        dict_result: bool = False,
+    ) -> Union[tuple, dict]:
         result = {}
         pattern = re.compile(name, re.IGNORECASE if ignorecase else 0)
         for key, value in self.items():
             if pattern.fullmatch(key):
                 result[key] = value
-        return result
+        if dict_result:
+            return result
+        else:
+            return tuple(result.values())
 
 
 class FigCollection(Collection):

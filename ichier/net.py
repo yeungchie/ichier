@@ -1,8 +1,9 @@
 from typing import Any, Dict, Iterator, Union
 
+from icutk.log import logger
+
 import ichier
 from .fig import Fig, FigCollection
-from .utils import logger
 
 __all__ = [
     "Net",

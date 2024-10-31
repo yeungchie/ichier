@@ -1,10 +1,10 @@
-from typing import Any, Iterable, Dict, Iterator, Optional, Tuple, Union
-import re
+from typing import Any, Dict, Iterator, Optional, Sequence, Tuple, Union
 
+from icutk.log import logger
 
 import ichier
 from .fig import Fig, FigCollection
-from .utils import logger, flattenMemName, expandTermNetPairs
+from .utils import flattenSequence, expandTermNetPairs
 
 __all__ = [
     "Instance",
@@ -17,13 +17,24 @@ class Instance(Fig):
         self,
         name: str,
         reference: str,
-        connection: Union[Iterable[str], Dict[str, str]] = (),
-        parameters: dict = {},
+        connection: Union[
+            None,
+            Dict[str, Union[str, Sequence[str]]],
+            Sequence[Union[str, Sequence[str]]],
+        ] = None,
+        parameters: Optional[Dict[str, Any]] = None,
     ) -> None:
         self.name = name
         self.reference = reference
+
+        if connection is None:
+            connection = {}
         self.connection = connection
+
+        if parameters is None:
+            parameters = {}
         self.__parameters = ichier.ParameterCollection(parameters)
+
         self.collection: "ichier.InstanceCollection"
 
     @property
@@ -39,31 +50,37 @@ class Instance(Fig):
     @property
     def connection(
         self,
-    ) -> Union[Tuple[str, ...], Dict[str, str]]:
+    ) -> Union[Dict[str, Union[str, Tuple[str, ...]]], Tuple[str, ...]]:
         return self.__connection
 
     @connection.setter
     def connection(
         self,
-        value: Union[Iterable[str], Dict[str, str]],
+        value: Union[
+            Dict[str, Union[str, Sequence[str]]],
+            Sequence[Union[str, Sequence[str]]],
+        ],
     ) -> None:
         if isinstance(value, dict):
-            for net, term in value.items():
-                if not isinstance(net, str) or not isinstance(term, str):
+            connect = {}
+            for term, net_info in value.items():
+                if not isinstance(term, str):
+                    raise TypeError("connect by name, term must be a string")
+                if isinstance(net_info, str):
+                    connect[term] = net_info
+                elif isinstance(net_info, Sequence):
+                    connect[term] = flattenSequence(tuple(net_info))
+                else:
                     raise TypeError(
-                        f"connection must be a dict of str:str pairs - {repr(net)}:{repr(term)}"
+                        "connect by name, net description must be a string or a sequence"
                     )
-            self.__connection = value
-        elif isinstance(value, Iterable):
-            value = tuple(value)
-            for net in value:
-                if not isinstance(net, str):
-                    raise TypeError(
-                        f"connection must be a iterable of strings - {repr(net)}"
-                    )
-            self.__connection = value
+        elif isinstance(value, Sequence):
+            connect = flattenSequence(tuple(value))
+            if not all(isinstance(x, str) for x in connect):
+                raise TypeError("connect by order, must be a sequence of strings")
         else:
-            raise TypeError("connection must be a iterable or a dict")
+            raise TypeError("connection must be a dict or a sequence")
+        self.__connection = connect
 
     @property
     def parameters(self) -> "ichier.ParameterCollection":
@@ -87,9 +104,7 @@ class Instance(Fig):
         else:
             module = None
 
-        if isinstance(reference, ichier.Module):
-            ref_terms = [t.name for t in reference.terminals]
-        else:
+        if not isinstance(reference, ichier.Module):
             reference = None
 
         mod_name = module.name if module is not None else "none"
@@ -99,62 +114,49 @@ class Instance(Fig):
         )
 
         if isinstance(self.connection, dict):
-            connection = {}
-            for termname, netname in self.connection.items():
-                term_order = flattenMemName(termname)
-                net_order = flattenMemName(netname)
-                term_count = len(term_order)
-                net_count = len(net_order)
-                if (term_count == 1) and (net_count != 1):
-                    # terminal 只有一个, 但 net 不唯一
-                    term = term_order[0]
-                    if re.fullmatch(r"[\[\]<>]", term):
-                        # term 字面上是总线的某 bit 例如 A<1>
-                        # net 不唯一, 不能连接到这个端口上
-                        raise ValueError(f"cannot connect {termname!r} to {netname!r}")
-                    else:
-                        # 可能是总线形式, verilog 中例化会被简写
-                        # CELL I0 (.IN(A[1:0]));
-                        if reference:
-                            # 存在可以参考的 Module
-                            # 匹配 term<\d+> / term[\d:]+
-                            connection = expandTermNetPairs(
-                                [
-                                    t.name
-                                    for t in reference.terminals
-                                    if re.fullmatch(rf"{term}(<\d+>|\[\d+\])", t.name)
-                                ],
-                                net_order,
-                            )
-                        else:
-                            # 没有可以参考的 Module, 自动生成一组总线
-                            connection = expandTermNetPairs(termname, net_order)
-                elif term_count != net_count:
-                    # terminal 和 net 都是多个, 但数量不同, 无法连接
-                    raise ValueError(
-                        f"different number of terms and nets, cannot connect {termname!r} to {netname!r}"
-                    )
-                else:
-                    # terminal 和 net 数量相同
-                    for term, net in zip(term_order, net_order):
-                        if reference and term not in ref_terms:
+            connect = {}
+            for term, net_desc in self.connection.items():
+                if isinstance(net_desc, str):  # 一对一连接
+                    if (
+                        reference and reference.terminals.get(term) is None
+                    ):  # 检查 terminal 是否存在
+                        raise ValueError(
+                            f"term {term!r} not found in module {reference.name!r}"
+                        )
+                    connect[term] = net_desc
+                elif isinstance(net_desc, tuple):  # 一对多连接
+                    if reference:
+                        result = reference.terminals.find(rf"{term}(\[\d+\]|<\d+>)")
+                        if not result:
                             raise ValueError(
-                                f"term {term!r} not found in module {reference.name!r}"
+                                f"term bus type {term!r} not found in module {reference.name!r}"
                             )
-                        connection[term] = net
-        elif isinstance(self.connection, Iterable):
-            net_order = []
-            for netname in self.connection:
-                net_order += flattenMemName(netname)
-            if reference is None:
-                connection = net_order  # 没有可以参考的 Module, 只能按顺序连接
+                        if len(result) != len(net_desc):
+                            raise ValueError(
+                                f"different number of terms and nets, cannot connect {term!r} to {net_desc!r}"
+                            )
+                        for t, n in zip(result, net_desc):
+                            connect[t.name] = n
+                    else:
+                        connect.update(expandTermNetPairs(term, net_desc))
+            self.connection = connect
+        elif isinstance(self.connection, (list, tuple)):
+            if reference:
+                if len(self.connection) != len(reference.terminals):
+                    raise ValueError(
+                        "different number of terms and nets, cannot connect by order."
+                    )
+                connect = {}
+                for term, net_desc in zip(reference.terminals, self.connection):
+                    connect[term.name] = net_desc
+                self.connection = connect
             else:
-                connection = {}  # 存在可以参考的 Module, 按命名连接
-                for term, net in zip(ref_terms, net_order):
-                    connection[term] = net
+                # 没有可以参考的Module，顺序连接忽略重建
+                logger.warning(
+                    f"Module {mod_name!r} instance '{ref_name}:{self.name}' has no reference module, ignore rebuild by order."
+                )
         else:
-            raise TypeError("connection must be a iterable or a dict")
-        self.connection = connection
+            raise TypeError("connection must be dict, list or tuple.")
 
 
 class InstanceCollection(FigCollection):

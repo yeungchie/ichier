@@ -1,17 +1,36 @@
-from typing import Dict, Iterable, List, Optional, Union
+from typing import Dict, Iterable, Optional, Union, overload
 
-from . import name_parse
-from .log import logger
+from .name_parse import parse as nameparse
 
 __all__ = [
-    "logger",
-    "flattenMemName",
+    "flattenSequence",
+    "parseMemName",
     "expandTermNetPairs",
 ]
 
 
-def flattenMemName(name: str) -> List[str]:
-    return name_parse.parse(name)
+@overload
+def flattenSequence(data: list) -> list: ...
+@overload
+def flattenSequence(data: tuple) -> tuple: ...
+def flattenSequence(data):
+    if not isinstance(data, (list, tuple)):
+        raise TypeError(f"data must be a list or tuple - {type(data)}")
+    seq = type(data)
+    result = []
+    for item in data:
+        if isinstance(item, (list, tuple)):
+            result.extend(flattenSequence(item))
+        else:
+            result.append(item)
+    return seq(result)
+
+
+def parseMemName(name: str, flatten: bool = False) -> Union[str, list, tuple]:
+    result = nameparse(name)
+    if flatten:
+        result = flattenSequence(result)
+    return result
 
 
 def expandTermNetPairs(

@@ -1,52 +1,27 @@
-from ply.lex import lex
+from icutk.lex import MetaLexer, LexToken
+from ichier.utils.escape import EscapeString
 
 
-class Lexer:
+class Lexer(MetaLexer):
     tokens = (
         "ID",
+        "ESC_ID",
         "INT",
-        "LBRACKET",  # [
-        "RBRACKET",  # ]
-        "LANGLE",  # <
-        "RANGLE",  # >
-        "LBRACE",  # {
-        "RBRACE",  # }
-        "COMMA",  # ,
-        "COLON",  # :
     )
+    literals = "[]<>{},:"
 
     t_ID = r"[a-zA-Z_]\w*|\\\S+"
-    t_LBRACKET = r"\["
-    t_RBRACKET = r"\]"
-    t_LANGLE = r"<"
-    t_RANGLE = r">"
-    t_LBRACE = r"\{"
-    t_RBRACE = r"\}"
-    t_COMMA = r","
-    t_COLON = r":"
 
-    def t_INT(self, t):
+    def t_ESC_ID(self, t: LexToken):
+        r"\\\S+"
+        t.value = EscapeString(t.value)
+        return t
+
+    def t_INT(self, t: LexToken):
         r"\d+"
         t.value = int(t.value)
         return t
 
-    def t_newline(self, t):
+    def t_newline(self, t: LexToken):
         r"\n+"
         t.lexer.lineno += t.value.count("\n")
-
-    def t_error(self, t):
-        t.lexer.skip(1)
-
-    t_ignore = " \t"
-
-    def build(self):
-        self.lexer = lex(module=self, debug=False)
-
-    def __init__(self):
-        self.build()
-
-    def input(self, data):
-        self.lexer.input(data)
-
-    def token(self):
-        return self.lexer.token()

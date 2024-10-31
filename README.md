@@ -11,7 +11,7 @@
 3. **实例化模块**：允许将模块实例化多次，以便在设计中复用特定的功能，比如在一个电路中多次使用同一个逻辑门。
 
 4. **代码解析**：支持解析 SPICE 和 Verilog 格式的电路文件，生成 `Design` 对象，方便分析电路结构和参数，提取设计信息。
-5. **命令行交互**：支持在 Python 中启动交互式 shell，方便用户与设计进行交互。
+5. **命令行交互**：支持在 Python 中启动交互式 shell，方便对电路的信息进行查询。
 
 ## 安装
 
@@ -113,11 +113,13 @@ from ichier.parser import fromVerilog
 design = fromVerilog("top.v")
 ```
 
-> 也可以直接使用 CLI 工具
++ 也可以直接使用 CLI 工具
 
 ```shell
-python -m ichier parser spice top.cdl
+python -m ichier parse spice top.cdl
 ```
+
+> 预先安装 `ipython` 和 `rich` 库，会有更好的交互体验。
 
 ## LICENSE
 

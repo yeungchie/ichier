@@ -1,4 +1,4 @@
-.PHONY: tests
+.PHONY: check tests clean install uninstall build upload iv
 
 PY=python3
 

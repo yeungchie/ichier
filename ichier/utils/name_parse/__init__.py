@@ -1,14 +1,16 @@
 from typing import List
 
-
 from .parser import Parser
 
 __all__ = [
     "parse",
 ]
 
-_Parser = Parser()
+__parser = None
 
 
 def parse(name: str) -> List[str]:
-    return _Parser.parse(name)
+    global __parser
+    if not isinstance(__parser, Parser):
+        __parser = Parser()
+    return __parser.parse(name)

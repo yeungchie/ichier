@@ -1,9 +1,9 @@
 from typing import Any, Dict, Iterable, Iterator, Literal, Union
 
+from icutk.log import logger
 
 import ichier
 from ichier.fig import Fig, FigCollection
-from .utils import logger
 
 __all__ = [
     "Module",
@@ -72,6 +72,8 @@ class Module(Fig):
         """
         self.instances.rebuild()
         self.nets.rebuild()
+
+    def makeModule(self, modules: Iterable["ichier.Instance"]) -> "Module": ...
 
 
 class ModuleCollection(FigCollection):

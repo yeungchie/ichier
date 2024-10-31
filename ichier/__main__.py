@@ -24,19 +24,19 @@ def parse_arguments():
         epilog=release.copyright,
     )
 
-    parser = command.add_parser(
-        "parser",
+    parse = command.add_parser(
+        "parse",
         description="Parse a circuit file, and start an interactive shell",
         help="Parse a circuit file, and start an interactive shell",
         epilog=release.copyright,
     )
-    parser.add_argument(
+    parse.add_argument(
         "format",
         type=str,
         choices=["spice", "verilog"],
         help="Format of the circuit file (spice or verilog)",
     )
-    parser.add_argument("file", type=str, help="Path to the circuit file")
+    parse.add_argument("file", type=str, help="Path to the circuit file")
 
     return main_parser.parse_args()
 
@@ -57,7 +57,7 @@ def main():
     args = parse_arguments()
     if args.command == "version":
         print(release.version)
-    elif args.command == "parser":
+    elif args.command == "parse":
         design = load_design(args.format, args.file)
         print(
             f"Successfully loaded design.\n"
