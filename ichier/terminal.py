@@ -1,5 +1,4 @@
-from typing import Any, Dict
-from typing_extensions import Literal, Optional
+from typing import Any, Dict, Iterator, Optional, Literal, Union
 
 from .fig import Fig, FigCollection
 from .errors import TerminalError
@@ -15,7 +14,7 @@ class Terminal(Fig):
         self,
         name: str,
         *,
-        direction: Literal["in", "out", "inout"] = "inout",
+        direction: Literal["input", "output", "inout"] = "inout",
         net_name: Optional[str] = None,
     ) -> None:
         self.name = name
@@ -23,16 +22,16 @@ class Terminal(Fig):
         self.net_name = net_name
 
     def __repr__(self) -> str:
-        return f"Terminal(name={self.name}, {self.direction})"
+        return f"Terminal({self.name!r}, {self.direction!r})"
 
     @property
-    def direction(self) -> Literal["in", "out", "inout"]:
+    def direction(self) -> Literal["input", "output", "inout"]:
         return self.__direction
 
     @direction.setter
     def direction(self, value) -> None:
-        if value not in ["in", "out", "inout"]:
-            raise ValueError("direction must be 'in', 'out', or 'inout'")
+        if value not in ["input", "output", "inout"]:
+            raise ValueError("direction must be 'input', 'output', or 'inout'")
         self.__direction = value
 
     @property
@@ -56,6 +55,12 @@ class TerminalCollection(FigCollection):
     def _valueChecker(self, fig: Terminal) -> None:
         if not isinstance(fig, Terminal):
             raise TypeError("fig must be an Terminal object")
+
+    def __iter__(self) -> Iterator[Terminal]:
+        return iter(self.figs)
+
+    def __getitem__(self, key: Union[int, str]) -> Terminal:
+        return super().__getitem__(key)
 
     def summary(self) -> Dict[str, Any]:
         return {

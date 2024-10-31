@@ -1,5 +1,6 @@
-from typing import Any, Dict, Iterable
-from typing_extensions import Literal
+from typing import Any, Dict, Iterable, Iterator, Literal, Union
+
+from icutk.log import logger
 
 import ichier
 from ichier.fig import Fig, FigCollection
@@ -64,11 +65,27 @@ class Module(Fig):
         else:
             raise ValueError("type must be 'compact' or 'detail'")
 
+    def rebuild(self) -> None:
+        """Rebuild the module.
+
+        Rebuild all instances connection, then recreating all nets for this module.
+        """
+        self.instances.rebuild()
+        self.nets.rebuild()
+
+    def makeModule(self, modules: Iterable["ichier.Instance"]) -> "Module": ...
+
 
 class ModuleCollection(FigCollection):
     def _valueChecker(self, value: Module) -> None:
         if not isinstance(value, Module):
             raise TypeError("value must be a Module")
+
+    def __iter__(self) -> Iterator[Module]:
+        return iter(self.figs)
+
+    def __getitem__(self, key: Union[int, str]) -> Module:
+        return super().__getitem__(key)
 
     def summary(
         self, info_type: Literal["compact", "detail"] = "compact"
@@ -77,3 +94,8 @@ class ModuleCollection(FigCollection):
             "total": len(self),
             "list": [module.summary(info_type) for module in self.figs],
         }
+
+    def rebuild(self) -> None:
+        for fig in self:
+            logger.info(f"Rebuilding module {fig.name!r} ...")
+            fig.rebuild()

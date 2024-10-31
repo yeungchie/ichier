@@ -129,8 +129,8 @@ def __subcktPinInfoParser(data: LineIterator) -> Dict[str, str]:
     for token in text.split()[1:]:
         term, dir = token.split(":")
         pininfo[term] = {
-            "I": "in",
-            "O": "out",
+            "I": "input",
+            "O": "output",
             "B": "inout",
         }[dir.upper()]
     return pininfo
@@ -207,18 +207,22 @@ def __subcktInstanceParser(
                 connect_info[term] = net
     else:
         # X1 Y A VSS VSS nmos m=1
-        # X2 A VSS $[res] w=1 l=2
-        # X2 A VSS w=1 $[res] l=2
+        # X2 A VSS 1.2 $[res] w=1 l=2
+        # X2 A VSS w=1 1.2 $[res] l=2
         nets_and_ref = []
+        param_order = 1
         for token in tokens[1:]:
             if "=" in token:
                 name, value = token.split("=")
                 params[name] = value
+            elif token[0].isdigit():
+                params[f"param_order_{param_order}"] = token
+                param_order += 1
             else:
                 nets_and_ref.append(token)
 
         ref_name = nets_and_ref[-1]
-        if ref_name.startswith("$"):
+        if ref_name.startswith("$[") and ref_name.endswith("]"):
             ref_name = ref_name[2:-1]
 
         connect_info = nets_and_ref[:-1]

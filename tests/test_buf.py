@@ -20,8 +20,8 @@ class TestBuf:
                 Module(
                     name="inv",
                     terminals=[
-                        Terminal(name="A", direction="in"),
-                        Terminal(name="Z", direction="out"),
+                        Terminal(name="A", direction="input"),
+                        Terminal(name="Z", direction="output"),
                     ],
                 ),
                 Module(
@@ -29,12 +29,12 @@ class TestBuf:
                     terminals=[
                         Terminal(
                             name="A",
-                            direction="in",
+                            direction="input",
                             net_name="A",
                         ),
                         Terminal(
                             name="Z",
-                            direction="out",
+                            direction="output",
                             net_name="Z",
                         ),
                     ],

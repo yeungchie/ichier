@@ -1,5 +1,5 @@
 from typing import Any, Iterable, Optional, Union
-from typing_extensions import Self
+import re
 
 import ichier
 
@@ -15,7 +15,7 @@ class Fig:
     __collection: Optional["FigCollection"] = None
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(name={repr(self.name)})"
+        return f"{self.__class__.__name__}({self.name!r})"
 
     def __str__(self) -> str:
         return self.name
@@ -65,7 +65,7 @@ class Collection(dict):
         self._valueChecker(value)
         self._dict__setitem__(key, value)
 
-    def __getitem__(self, key: Union[int, str]) -> Fig:
+    def __getitem__(self, key: Union[int, str]) -> Any:
         if isinstance(key, int):
             key = tuple(self.keys())[key]
         elif isinstance(key, str):
@@ -112,9 +112,25 @@ class Collection(dict):
         result.update(self)
         return result
 
-    def __ior__(self, other: dict) -> Self:
+    def __ior__(self, other: dict) -> "Collection":
         self.update(other)
         return self
+
+    def find(
+        self,
+        name: str,
+        ignorecase: bool = False,
+        dict_result: bool = False,
+    ) -> Union[tuple, dict]:
+        result = {}
+        pattern = re.compile(name, re.IGNORECASE if ignorecase else 0)
+        for key, value in self.items():
+            if pattern.fullmatch(key):
+                result[key] = value
+        if dict_result:
+            return result
+        else:
+            return tuple(result.values())
 
 
 class FigCollection(Collection):

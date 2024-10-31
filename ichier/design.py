@@ -1,5 +1,4 @@
-from typing import Any, Dict, Iterable, Optional
-from typing_extensions import Literal
+from typing import Any, Dict, Iterable, Iterator, Optional, Literal, Union
 from uuid import uuid4
 
 import ichier
@@ -60,3 +59,9 @@ class DesignCollection(FigCollection):
     def _valueChecker(self, value: Design) -> None:
         if not isinstance(value, Design):
             raise TypeError("value must be a Design")
+
+    def __iter__(self) -> Iterator[Design]:
+        return iter(self.figs)
+
+    def __getitem__(self, key: Union[int, str]) -> Design:
+        return super().__getitem__(key)

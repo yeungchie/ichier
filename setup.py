@@ -11,6 +11,7 @@ DESCRIPTION = "Integrated Circuit Hierarchy"
 PROJECT = "ichier"
 AUTHOR = ichier.__author__
 EMAIL = ichier.__email__
+URL = ichier.__url__
 
 setup(
     name=PROJECT,
@@ -20,7 +21,7 @@ setup(
     description=DESCRIPTION,
     long_description=Path("README.md").read_text("utf-8"),
     long_description_content_type="text/markdown",
-    url=f"https://github.com/{AUTHOR.lower()}/{PROJECT}",
+    url=URL,
     packages=find_packages(exclude=["tests"]),
     python_requires=">=3.8",
     install_requires=Path("requirements.txt").read_text("utf-8").split(),
