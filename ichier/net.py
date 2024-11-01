@@ -2,7 +2,7 @@ from typing import Any, Dict, Iterator, Union
 
 from icutk.log import logger
 
-import ichier
+import ichier.obj as icobj
 from .fig import Fig, FigCollection
 
 __all__ = [
@@ -18,11 +18,11 @@ class Net(Fig):
     def getConnectedInstances(self) -> tuple:
         if self.collection is None:
             return ()
-        if not isinstance(self.collection.parent, ichier.Module):
+        if not isinstance(self.collection.parent, icobj.Module):
             return ()
         insts = []
         for inst in self.collection.parent.instances:
-            inst: ichier.Instance
+            inst: icobj.Instance
             if isinstance(inst.connection, tuple):
                 nets = inst.connection
             elif isinstance(inst.connection, dict):
@@ -51,7 +51,7 @@ class NetCollection(FigCollection):
     def rebuild(self) -> None:
         """Recreating all nets in the module."""
         module = self.parent
-        if not isinstance(module, ichier.Module):
+        if not isinstance(module, icobj.Module):
             raise ValueError("parent module must be specified")
         logger.info(f"Rebuilding module {module.name!r} nets ...")
 

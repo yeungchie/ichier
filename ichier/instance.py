@@ -2,7 +2,7 @@ from typing import Any, Dict, Iterator, Optional, Sequence, Tuple, Union
 
 from icutk.log import logger
 
-import ichier
+import ichier.obj as icobj
 from .fig import Fig, FigCollection
 from .utils import flattenSequence, expandTermNetPairs
 
@@ -33,9 +33,9 @@ class Instance(Fig):
 
         if parameters is None:
             parameters = {}
-        self.__parameters = ichier.ParameterCollection(parameters)
+        self.__parameters = icobj.ParameterCollection(parameters)
 
-        self.collection: "ichier.InstanceCollection"
+        self.collection: "icobj.InstanceCollection"
 
     @property
     def reference(self) -> str:
@@ -83,7 +83,7 @@ class Instance(Fig):
         self.__connection = connect
 
     @property
-    def parameters(self) -> "ichier.ParameterCollection":
+    def parameters(self) -> "icobj.ParameterCollection":
         return self.__parameters
 
     def __getitem__(self, key: str) -> Any:
@@ -95,16 +95,16 @@ class Instance(Fig):
     def __delitem__(self, key: str) -> None:
         del self.parameters[key]
 
-    def rebuild(self, reference: Optional["ichier.Module"] = None) -> None:
+    def rebuild(self, reference: Optional["icobj.Module"] = None) -> None:
         """Rebuild connection"""
         if reference is None and self.collection is not None:
-            if isinstance(module := self.collection.parent, ichier.Module):
-                if isinstance(modules := module.collection, ichier.ModuleCollection):
+            if isinstance(module := self.collection.parent, icobj.Module):
+                if isinstance(modules := module.collection, icobj.ModuleCollection):
                     reference = modules.get(self.reference)
         else:
             module = None
 
-        if not isinstance(reference, ichier.Module):
+        if not isinstance(reference, icobj.Module):
             reference = None
 
         mod_name = module.name if module is not None else "none"

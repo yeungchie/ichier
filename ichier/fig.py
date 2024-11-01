@@ -1,7 +1,7 @@
 from typing import Any, Iterable, Optional, Union
 import re
 
-import ichier
+import ichier.obj as icobj
 
 __all__ = [
     "Fig",
@@ -136,7 +136,7 @@ class Collection(dict):
 class FigCollection(Collection):
     def __init__(
         self,
-        parent: Union["ichier.Module", "ichier.Design"],
+        parent: Union["icobj.Module", "icobj.Design"],
         figs: Iterable[Fig] = (),
     ) -> None:
         super().__init__()
@@ -147,7 +147,7 @@ class FigCollection(Collection):
         return f"{self.__class__.__name__}: {len(self)} figs"
 
     @property
-    def parent(self) -> Union["ichier.Module", "ichier.Design"]:
+    def parent(self) -> Union["icobj.Module", "icobj.Design"]:
         return self.__parent
 
     @property

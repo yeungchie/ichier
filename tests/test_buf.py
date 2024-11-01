@@ -1,4 +1,4 @@
-from ichier import (
+from ichier.obj import (
     Design,
     Module,
     ModuleCollection,

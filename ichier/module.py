@@ -2,8 +2,8 @@ from typing import Any, Dict, Iterable, Iterator, Literal, Union
 
 from icutk.log import logger
 
-import ichier
-from ichier.fig import Fig, FigCollection
+import ichier.obj as icobj
+from .fig import Fig, FigCollection
 
 __all__ = [
     "Module",
@@ -15,31 +15,31 @@ class Module(Fig):
     def __init__(
         self,
         name: str,
-        terminals: Iterable["ichier.Terminal"] = (),
-        nets: Iterable["ichier.Net"] = (),
-        instances: Iterable["ichier.Instance"] = (),
+        terminals: Iterable["icobj.Terminal"] = (),
+        nets: Iterable["icobj.Net"] = (),
+        instances: Iterable["icobj.Instance"] = (),
         parameters: dict = {},
     ) -> None:
         self.name = name
-        self.__terminals = ichier.TerminalCollection(self, terminals)
-        self.__nets = ichier.NetCollection(self, nets)
-        self.__instances = ichier.InstanceCollection(self, instances)
-        self.__parameters = ichier.ParameterCollection(parameters)
+        self.__terminals = icobj.TerminalCollection(self, terminals)
+        self.__nets = icobj.NetCollection(self, nets)
+        self.__instances = icobj.InstanceCollection(self, instances)
+        self.__parameters = icobj.ParameterCollection(parameters)
 
     @property
-    def terminals(self) -> "ichier.TerminalCollection":
+    def terminals(self) -> "icobj.TerminalCollection":
         return self.__terminals
 
     @property
-    def instances(self) -> "ichier.InstanceCollection":
+    def instances(self) -> "icobj.InstanceCollection":
         return self.__instances
 
     @property
-    def nets(self) -> "ichier.NetCollection":
+    def nets(self) -> "icobj.NetCollection":
         return self.__nets
 
     @property
-    def parameters(self) -> "ichier.ParameterCollection":
+    def parameters(self) -> "icobj.ParameterCollection":
         return self.__parameters
 
     def summary(
@@ -73,7 +73,7 @@ class Module(Fig):
         self.instances.rebuild()
         self.nets.rebuild()
 
-    def makeModule(self, modules: Iterable["ichier.Instance"]) -> "Module": ...
+    def makeModule(self, modules: Iterable["icobj.Instance"]) -> "Module": ...
 
 
 class ModuleCollection(FigCollection):
