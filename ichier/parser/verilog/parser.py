@@ -384,13 +384,3 @@ class VerilogParser:
 
     def parse(self, text) -> Design:
         return self.parser.parse(text, lexer=self.lexer)
-
-
-def flattenList(lst: Union[list, tuple]) -> list:
-    result = []
-    for item in lst:
-        if isinstance(item, (list, tuple)):
-            result.extend(flattenList(item))
-        else:
-            result.append(item)
-    return result
