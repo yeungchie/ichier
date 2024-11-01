@@ -140,6 +140,8 @@ class FigCollection(Collection):
         figs: Iterable[Fig] = (),
     ) -> None:
         super().__init__()
+        if not isinstance(parent, (icobj.Module, icobj.Design)):
+            raise TypeError("parent must be a Module or Design")
         self.__parent = parent
         self.extend(figs)
 
