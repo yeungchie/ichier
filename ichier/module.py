@@ -1,4 +1,4 @@
-from typing import Any, Dict, Iterable, Iterator, Literal, Union
+from typing import Any, Dict, Iterable, Iterator, Literal, Optional, Union
 
 from icutk.log import getLogger
 
@@ -100,3 +100,34 @@ class ModuleCollection(FigCollection):
         for fig in self:
             logger.info(f"Rebuilding module {fig.name!r} ...")
             fig.rebuild()
+
+
+class Reference(str):
+    def __new__(cls, name: str, instance: "icobj.Instance"):
+        return super().__new__(cls, name)
+
+    def __init__(self, name: str, instance: "icobj.Instance") -> None:
+        if not isinstance(instance, icobj.Instance):
+            raise TypeError("instance must be an Instance")
+        self.__name = str(self)
+        self.__instance = instance
+
+    def __repr__(self) -> str:
+        return f"Reference({super().__repr__()})"
+
+    def __str__(self) -> str:
+        return super().__str__()
+
+    @property
+    def name(self) -> str:
+        return self.__name
+
+    @property
+    def instance(self) -> "icobj.Instance":
+        return self.__instance
+
+    def getMaster(self) -> Optional[Module]:
+        design = self.instance.getDesign()
+        if design is None:
+            return
+        return design.modules.get(self.name)

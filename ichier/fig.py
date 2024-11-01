@@ -44,6 +44,26 @@ class Fig:
             raise TypeError("value must be a FigCollection or None")
         self.__collection = value
 
+    def getModule(self) -> Optional["icobj.Module"]:
+        collection = self.collection
+        if collection is None:
+            return
+        if isinstance(collection.parent, icobj.Module):
+            return collection.parent
+        else:
+            return None
+
+    def getDesign(self) -> Optional["icobj.Design"]:
+        collection = self.collection
+        if collection is None:
+            return
+        if isinstance(collection.parent, icobj.Module):
+            return collection.parent.getDesign()
+        elif isinstance(collection.parent, icobj.Design):
+            return collection.parent
+        else:
+            return None
+
 
 class Collection(dict):
     def __init__(self, *args, **kwargs) -> None:

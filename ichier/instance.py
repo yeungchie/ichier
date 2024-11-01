@@ -38,14 +38,12 @@ class Instance(Fig):
         self.collection: "icobj.InstanceCollection"
 
     @property
-    def reference(self) -> str:
-        return self.__module_name
+    def reference(self) -> "icobj.Reference":
+        return self.__reference
 
     @reference.setter
     def reference(self, value: str) -> None:
-        if not isinstance(value, str):
-            raise TypeError("module_name must be a string")
-        self.__module_name = value
+        self.__reference = icobj.Reference(value, instance=self)
 
     @property
     def connection(
