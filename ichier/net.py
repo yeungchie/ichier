@@ -1,6 +1,6 @@
 from typing import Any, Dict, Iterator, Union
 
-from icutk.log import logger
+from icutk.log import getLogger
 
 import ichier.obj as icobj
 from .fig import Fig, FigCollection
@@ -53,6 +53,8 @@ class NetCollection(FigCollection):
         module = self.parent
         if not isinstance(module, icobj.Module):
             raise ValueError("parent module must be specified")
+        
+        logger = getLogger(__name__)
         logger.info(f"Rebuilding module {module.name!r} nets ...")
 
         all_nets = set()

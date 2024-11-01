@@ -1,6 +1,6 @@
 from typing import Any, Dict, Iterable, Iterator, Literal, Union
 
-from icutk.log import logger
+from icutk.log import getLogger
 
 import ichier.obj as icobj
 from .fig import Fig, FigCollection
@@ -96,6 +96,7 @@ class ModuleCollection(FigCollection):
         }
 
     def rebuild(self) -> None:
+        logger = getLogger(__name__)
         for fig in self:
             logger.info(f"Rebuilding module {fig.name!r} ...")
             fig.rebuild()

@@ -1,6 +1,6 @@
 from typing import Any, Dict, Iterator, Optional, Sequence, Tuple, Union
 
-from icutk.log import logger
+from icutk.log import getLogger
 
 import ichier.obj as icobj
 from .fig import Fig, FigCollection
@@ -97,6 +97,7 @@ class Instance(Fig):
 
     def rebuild(self, reference: Optional["icobj.Module"] = None) -> None:
         """Rebuild connection"""
+        logger = getLogger(__name__)
         if reference is None and self.collection is not None:
             if isinstance(module := self.collection.parent, icobj.Module):
                 if isinstance(modules := module.collection, icobj.ModuleCollection):
