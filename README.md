@@ -60,7 +60,7 @@ design = Design(
                     reference="inv",
                     connection={
                         "A": "A",
-                        "Z": "Z",
+                        "Z": "inter",
                     },
                     parameters={"size": "x2"},
                 ),
@@ -68,8 +68,8 @@ design = Design(
                     name="i2",
                     reference="inv",
                     connection={
-                        "A": "Z",
-                        "Z": "A",
+                        "A": "inter",
+                        "Z": "Z",
                     },
                     parameters={"size": "x4"},
                 ),
@@ -83,18 +83,18 @@ design = Design(
 
 ```python
 design.modules.figs
-# (Module(name='inv'), Module(name='buf'))
+# (Module('inv'), Module('buf'))
 
 buf = design.modules["buf"]
 
 buf.terminals.figs
-# (Terminal(name=A, in), Terminal(name=Z, out))
+# (Terminal('A', 'input'), Terminal('Z', 'output'))
 
 buf.instances.figs
-# (Instance(name='i1'), Instance(name='i2'))
+# (Instance('i1'), Instance('i2'))
 
 buf.nets.figs
-# (Net(name='A'), Net(name='Z'), Net(name='inter'))
+# (Net('A'), Net('Z'), Net('inter'))
 ```
 
 ## 从网表读入设计
