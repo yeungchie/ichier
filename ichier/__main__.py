@@ -2,6 +2,7 @@ from argparse import ArgumentParser
 from pathlib import Path
 from textwrap import dedent
 from typing import Literal, Union
+import os
 
 from . import release
 from . import obj
@@ -41,6 +42,13 @@ def parse_arguments():
         help="Format of the circuit file (spice or verilog)",
     )
     parse.add_argument("file", type=str, help="Path to the circuit file")
+    parse.add_argument(
+        "--lang",
+        type=str,
+        choices=["auto", "en", "zh"],
+        default="auto",
+        help="Language for tips",
+    )
 
     return main_parser.parse_args()
 
@@ -60,18 +68,26 @@ def load_design(
         raise RuntimeError(f"Error while loading design: {e}")
 
 
-def show_tips(design: obj.Design):
+def show_tips(design: obj.Design, lang: Literal["en", "zh"] = "en"):
     title = f"IC Hierarchy {release.version}"
-    banner = dedent("""\
-                    + Successfully loaded design.
-                    + Now you can interact with the Design using the `design` variable.
-                    + Use `exit` or `quit` to exit the interactive shell.
-                    """)
-
+    if lang == "en":
+        banner = dedent(f"""\
+                        + Successfully loaded `{design.name}`
+                        + Now you can interact with the Design using the `design` variable.
+                        + Use `exit` or `quit` to exit the interactive shell.
+                        """)
+    elif lang == "zh":
+        banner = dedent(f"""\
+                        + 成功加载 `{design.name}`
+                        + 现在你可以使用 `design` 变量与设计进行交互了。
+                        + 使用 `exit` 或 `quit` 退出交互界面。
+                        """)
+    else:
+        raise ValueError(f"Unsupported language: {lang}")
     code = dedent(f"""\
-                  design            # {design!r}
-                  design.modules    # {design.modules!r}
-                  design.summary()  # {design.summary()!r}
+                  design          # {design!r}
+                  design.path     # {design.path!r}
+                  design.modules  # {design.modules!r}
                   """)
     try:
         from rich.console import Console
@@ -84,7 +100,11 @@ def show_tips(design: obj.Design):
             Panel(Markdown(banner), title=f"\U0001f349 {title}", border_style="blue")
         )
         console.print()
-        console.print(Syntax(code, "python", theme="monokai", line_numbers=True))
+        console.print(
+            Syntax(
+                code.rstrip(), "python", theme="monokai", line_numbers=True, padding=1
+            )
+        )
     except ImportError:
         print(title)
         print(banner)
@@ -99,7 +119,16 @@ def main():
         from icutk import cli
 
         design = load_design(args.format, args.file)
-        show_tips(design)
+
+        if args.lang == "auto":
+            if os.environ.get("LANG", "").startswith("zh"):
+                lang = "zh"
+            else:
+                lang = "en"
+        else:
+            lang = args.lang
+
+        show_tips(design, lang=lang)
         cli.start({"design": design})
 
 
