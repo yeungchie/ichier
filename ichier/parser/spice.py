@@ -1,4 +1,5 @@
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+from pathlib import Path
+from typing import Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 from icutk.string import LineIterator
 import ichier
@@ -22,10 +23,10 @@ class SpiceInstanceError(SpiceFormatError):
     pass
 
 
-def fromFile(file: str) -> ichier.Design:
-    with open(file, "r", encoding="utf-8") as f:
-        design = fromIterable(f)
-    design.name = file
+def fromFile(file: Union[str, Path]) -> ichier.Design:
+    with open(file, "rt", encoding="utf-8") as f:
+        design = fromString(f.read())
+    design.name = str(file)
     return design
 
 
