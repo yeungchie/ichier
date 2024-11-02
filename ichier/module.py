@@ -119,6 +119,10 @@ class Reference(str):
         return super().__str__()
 
     @property
+    def type(self) -> str:
+        return self.__class__.__name__
+
+    @property
     def name(self) -> str:
         return self.__name
 

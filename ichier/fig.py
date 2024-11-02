@@ -21,6 +21,10 @@ class Fig:
         return self.name
 
     @property
+    def type(self) -> str:
+        return self.__class__.__name__
+
+    @property
     def name(self) -> str:
         return self.__name
 
@@ -72,6 +76,10 @@ class Collection(dict):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__()
         self.update(*args, **kwargs)
+
+    @property
+    def type(self) -> str:
+        return self.__class__.__name__
 
     def _keyChecker(self, key: str) -> None:
         if not isinstance(key, str):
