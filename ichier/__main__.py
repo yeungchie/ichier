@@ -1,7 +1,11 @@
 from argparse import ArgumentParser
+from pathlib import Path
+from textwrap import dedent
+from typing import Literal, Union
 
-from .parser import fromSpice, fromVerilog
 from . import release
+from . import obj
+from .parser import fromSpice, fromVerilog
 
 
 def parse_arguments():
@@ -41,7 +45,10 @@ def parse_arguments():
     return main_parser.parse_args()
 
 
-def load_design(format, file):
+def load_design(
+    format: Literal["spice", "verilog"],
+    file: Union[str, Path],
+) -> obj.Design:
     try:
         if format == "spice":
             return fromSpice(file)
@@ -53,33 +60,47 @@ def load_design(format, file):
         raise RuntimeError(f"Error while loading design: {e}")
 
 
+def show_tips(design: obj.Design):
+    title = f"IC Hierarchy {release.version}"
+    banner = dedent("""\
+                    + Successfully loaded design.
+                    + Now you can interact with the Design using the `design` variable.
+                    + Use `exit` or `quit` to exit the interactive shell.
+                    """)
+
+    code = dedent(f"""\
+                  design            # {design!r}
+                  design.modules    # {design.modules!r}
+                  design.summary()  # {design.summary()!r}
+                  """)
+    try:
+        from rich.console import Console
+        from rich.panel import Panel
+        from rich.markdown import Markdown
+        from rich.syntax import Syntax
+
+        console = Console()
+        console.print(
+            Panel(Markdown(banner), title=f"\U0001f349 {title}", border_style="blue")
+        )
+        console.print()
+        console.print(Syntax(code, "python", theme="monokai", line_numbers=True))
+    except ImportError:
+        print(title)
+        print(banner)
+        print(code)
+
+
 def main():
     args = parse_arguments()
     if args.command == "version":
         print(release.version)
     elif args.command == "parse":
+        from icutk import cli
+
         design = load_design(args.format, args.file)
-        print(
-            f"Successfully loaded design.\n"
-            f"You can now interact with the Design using the `design` variable.\n"
-            f"Use `exit()` or `quit()` to exit the interactive shell.\n\n"
-            f"design = {repr(design)}"
-        )
-        try:
-            from IPython import start_ipython
-
-            start_ipython(
-                argv=[],
-                user_ns={"design": design},
-                display_banner=False,
-            )
-        except ImportError:
-            from code import interact
-
-            interact(
-                local={"design": design},
-                banner="",
-            )
+        show_tips(design)
+        cli.start({"design": design})
 
 
 if __name__ == "__main__":
