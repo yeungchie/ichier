@@ -35,6 +35,9 @@ class Fig:
         if self.collection is not None:
             self.collection.rename(old, value)
 
+    def _setName(self, value: str) -> None:
+        self.__name = value
+
     @property
     def collection(self) -> Optional["FigCollection"]:
         return self.__collection
@@ -207,5 +210,5 @@ class FigCollection(Collection):
             raise KeyError(f"{dst} already exists")
         fig: Fig = self.pop(src)
         if fig.name != dst:
-            fig.name = dst
+            fig._setName(dst)
         self.__setitem__(dst, fig)
