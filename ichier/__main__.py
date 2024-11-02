@@ -85,10 +85,14 @@ def show_tips(design: obj.Design, lang: Literal["en", "zh"] = "en"):
     else:
         raise ValueError(f"Unsupported language: {lang}")
     code = dedent(f"""\
-                  design          # {design!r}
-                  design.path     # {design.path!r}
-                  design.modules  # {design.modules!r}
-                  """)
+                    design          # {design!r}
+                    design.path     # {design.path!r}
+                    design.modules  # {design.modules!r}
+
+                    for module in design.modules:       # iterate over modules in the design
+                        for inst in module.instances:   # iterate over instances in each module
+                            ...
+                    """)
     try:
         from rich.console import Console
         from rich.panel import Panel
