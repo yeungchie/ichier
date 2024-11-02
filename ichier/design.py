@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Any, Dict, Iterable, Iterator, Optional, Literal, Union
 from uuid import uuid4
 
@@ -35,6 +36,14 @@ class Design(Fig):
     @property
     def includes(self) -> "DesignCollection":
         return self.__includes
+
+    @property
+    def path(self) -> Optional[Path]:
+        return self.__path
+
+    @path.setter
+    def path(self, value: Optional[Union[str, Path]]) -> None:
+        self.__path = None if value is None else Path(value)
 
     def summary(
         self,
