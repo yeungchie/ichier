@@ -1,4 +1,4 @@
-from typing import Any, Dict, Iterator, Union
+from typing import Any, Dict, Iterator, Optional, Tuple, Union
 
 from icutk.log import getLogger
 
@@ -12,23 +12,20 @@ __all__ = [
 
 
 class Net(Fig):
-    def __init__(self, name: str) -> None:
-        self.name = name
-
-    def getConnectedInstances(self) -> tuple:
-        if self.collection is None:
-            return ()
-        if not isinstance(self.collection.parent, icobj.Module):
-            return ()
-        insts = []
-        for inst in self.collection.parent.instances:
+    def getAssocInstances(self) -> Tuple["icobj.Instance", ...]:
+        """Get the instances associated with the net in the module."""
+        module = self.getModule()
+        if module is None:
+            raise ValueError("Instance not in module")
+        insts = set()
+        for inst in module.instances:
             inst: icobj.Instance
             if isinstance(inst.connection, tuple):
                 nets = inst.connection
             elif isinstance(inst.connection, dict):
                 nets = inst.connection.values()
             if self.name in nets:
-                insts.append(inst)
+                insts.add(inst)
         return tuple(insts)
 
 
@@ -43,6 +40,9 @@ class NetCollection(FigCollection):
     def __getitem__(self, key: Union[int, str]) -> Net:
         return super().__getitem__(key)
 
+    def get(self, *args: Any, **kwargs: Any) -> Optional[Net]:
+        return super().get(*args, **kwargs)
+
     def summary(self) -> Dict[str, Any]:
         return {
             "total": len(self),
@@ -53,7 +53,7 @@ class NetCollection(FigCollection):
         module = self.parent
         if not isinstance(module, icobj.Module):
             raise ValueError("parent module must be specified")
-        
+
         logger = getLogger(__name__)
         logger.info(f"Rebuilding module {module.name!r} nets ...")
 

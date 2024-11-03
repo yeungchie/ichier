@@ -1,4 +1,4 @@
-from typing import Any, Iterable, Optional, Union
+from typing import Any, Iterable, Iterator, Optional, Union
 import re
 
 import ichier.obj as icobj
@@ -13,6 +13,9 @@ __all__ = [
 class Fig:
     __name: str = ""
     __collection: Optional["FigCollection"] = None
+
+    def __init__(self, name: str = "") -> None:
+        self.name = name
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.name!r})"
@@ -75,6 +78,8 @@ class Fig:
 class Collection(dict):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__()
+        if args == (None,) and not kwargs:
+            return
         self.update(*args, **kwargs)
 
     @property
@@ -220,3 +225,11 @@ class FigCollection(Collection):
         if fig.name != dst:
             fig._setName(dst)
         self.__setitem__(dst, fig)
+
+    def __iter__(self) -> Iterator[Fig]:
+        return iter(self.figs)
+
+    def clear(self) -> None:
+        for v in self.values():
+            v._setCollection(None)
+        return super().clear()

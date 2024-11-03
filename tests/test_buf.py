@@ -30,12 +30,10 @@ class TestBuf:
                         Terminal(
                             name="A",
                             direction="input",
-                            net_name="A",
                         ),
                         Terminal(
                             name="Z",
                             direction="output",
-                            net_name="Z",
                         ),
                     ],
                     nets=[

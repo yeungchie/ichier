@@ -7,7 +7,7 @@ __version__ = release.version
 __url__ = release.url
 __copyright__ = release.copyright
 
-from .obj import Design, Module, Instance, Net, Terminal, ParameterCollection
+from .obj import Design, Module, Instance, Net, Terminal
 
 __all__ = [
     "Design",
@@ -15,5 +15,4 @@ __all__ = [
     "Instance",
     "Net",
     "Terminal",
-    "ParameterCollection",
 ]

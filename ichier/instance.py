@@ -30,11 +30,7 @@ class Instance(Fig):
         if connection is None:
             connection = {}
         self.connection = connection
-
-        if parameters is None:
-            parameters = {}
         self.__parameters = icobj.ParameterCollection(parameters)
-
         self.collection: "icobj.InstanceCollection"
 
     @property
@@ -79,6 +75,26 @@ class Instance(Fig):
         else:
             raise TypeError("connection must be a dict or a sequence")
         self.__connection = connect
+
+    def getAssocNets(self) -> Tuple["icobj.Net", ...]:
+        """Get the nets associated with the instance in the module."""
+        module = self.getModule()
+        if module is None:
+            raise ValueError("Instance not in module")
+        nets = set()
+        if isinstance(self.connection, dict):
+            connects = self.connection.values()
+        else:
+            connects = self.connection
+        for net_desc in connects:
+            if isinstance(net_desc, str):
+                if net := module.nets.get(net_desc):
+                    nets.add(net)
+            else:
+                raise ValueError(
+                    f"{net_desc!r} is not a scalar string, maybe you need to rebuild the connection."
+                )
+        return tuple(nets)
 
     @property
     def parameters(self) -> "icobj.ParameterCollection":
@@ -168,6 +184,9 @@ class InstanceCollection(FigCollection):
 
     def __getitem__(self, key: Union[int, str]) -> Instance:
         return super().__getitem__(key)
+
+    def get(self, *args: Any, **kwargs: Any) -> Optional[Instance]:
+        return super().get(*args, **kwargs)
 
     def summary(self) -> Dict[str, Any]:
         cate = {}

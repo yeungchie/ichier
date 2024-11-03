@@ -74,3 +74,6 @@ class DesignCollection(FigCollection):
 
     def __getitem__(self, key: Union[int, str]) -> Design:
         return super().__getitem__(key)
+
+    def get(self, *args: Any, **kwargs: Any) -> Optional[Design]:
+        return super().get(*args, **kwargs)
