@@ -31,6 +31,11 @@ setup(
         "hierarchy",
         "linux",
     ],
+    entry_points={
+        "console_scripts": [
+            "ichier=ichier._main:main",
+        ],
+    },
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
