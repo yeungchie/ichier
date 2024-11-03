@@ -1,12 +1,11 @@
 from argparse import ArgumentParser
 from pathlib import Path
 from textwrap import dedent
-from typing import Literal, Union
+from typing import Literal, Optional, Union
 import os
 
 from . import release
 from . import obj
-from .parser import fromSpice, fromVerilog
 
 
 def parse_arguments():
@@ -56,29 +55,135 @@ def parse_arguments():
 def load_design(
     format: Literal["spice", "verilog"],
     file: Union[str, Path],
-) -> obj.Design:
+) -> Optional[obj.Design]:
     try:
         if format == "spice":
-            return fromSpice(file)
+            return load_spice(file)
         elif format == "verilog":
-            return fromVerilog(file)
+            return load_verilog(file)
         else:
             raise ValueError(f"Unsupported format: {format}")
     except Exception as e:
         raise RuntimeError(f"Error while loading design: {e}")
 
 
-def show_tips(design: obj.Design, lang: Literal["en", "zh"] = "en"):
+def load_spice(file) -> Optional[obj.Design]:
+    from .parser import fromSpice
+
+    return fromSpice(file)
+
+
+def load_verilog(file) -> Optional[obj.Design]:
+    if load_progress := create_progress():
+        from icutk.lex import Lexer, LexToken
+        from .parser.verilog import VerilogParser
+
+        def verilogInputCB(lexer: Lexer):
+            if not isinstance(lexer.lexdata, str):
+                raise ValueError("lexer.lexdata should be a string")
+            load_progress.set_total(lexer.lexdata.count("\n"))
+
+        def verilogTokenCB(lexer: Lexer, token: LexToken):
+            if load_progress.finished:
+                return
+            if lexer.lineno > load_progress.completed:
+                load_progress.set_completed(lexer.lineno)
+
+        with load_progress:
+            parser = VerilogParser(cb_input=verilogInputCB, cb_token=verilogTokenCB)
+            path = Path(file)
+            try:
+                design = parser.parse(path.read_text())
+                load_progress.done()
+                design.name = path.name
+                design.path = path
+            except KeyboardInterrupt:
+                return
+    else:
+        from .parser import fromVerilog
+
+        design = fromVerilog(file)
+    return design
+
+
+def create_progress():
+    try:
+        from rich.console import Console
+        from rich.progress import (
+            Progress,
+            SpinnerColumn,
+            TimeElapsedColumn,
+            TextColumn,
+            BarColumn,
+            TaskProgressColumn,
+            TimeRemainingColumn,
+        )
+        from shutil import get_terminal_size
+
+        class LoadProgress:
+            def __init__(self):
+                self.progress = Progress(
+                    SpinnerColumn(),
+                    TextColumn("[progress.description]{task.description}"),
+                    BarColumn(bar_width=get_terminal_size().columns),
+                    TaskProgressColumn(),
+                    TimeRemainingColumn(),
+                    TimeElapsedColumn(),
+                    console=Console(log_time_format="[%T]"),
+                    transient=True,
+                    expand=True,
+                )
+                self.progress.add_task("Parsing")
+                self.task = self.progress.tasks[0]
+
+            @property
+            def finished(self):
+                return self.progress.finished or self.task.finished
+
+            @property
+            def total(self):
+                return self.task.total
+
+            @property
+            def completed(self):
+                return self.task.completed
+
+            def set_total(self, total: int):
+                if self.finished:
+                    return
+                self.progress.update(self.task.id, total=total)
+
+            def set_completed(self, current: int):
+                if self.finished:
+                    return
+                self.progress.update(self.task.id, completed=current)
+
+            def done(self):
+                self.progress.update(self.task.id, completed=self.task.total)
+
+            def __enter__(self):
+                self.progress.__enter__()
+                return self
+
+            def __exit__(self, *args, **kwargs):
+                self.progress.__exit__(*args, **kwargs)
+
+        return LoadProgress()
+    except ImportError:
+        return
+
+
+def show_tips(design: obj.Design, used_time: float, lang: Literal["en", "zh"] = "en"):
     title = f"IC Hierarchy {release.version}"
     if lang == "en":
         banner = dedent(f"""\
-                        + Successfully loaded `{design.name}`
+                        + Successfully loaded `{design.name}` used {used_time:.2f} seconds.
                         + Now you can interact with the Design using the `design` variable.
                         + Use `exit` or `quit` to exit the interactive shell.
                         """)
     elif lang == "zh":
         banner = dedent(f"""\
-                        + 成功加载 `{design.name}`
+                        + 成功加载 `{design.name}` 用时 {used_time:.2f} 秒。
                         + 现在你可以使用 `design` 变量与设计进行交互了。
                         + 使用 `exit` 或 `quit` 退出交互界面。
                         """)
@@ -121,8 +226,13 @@ def main():
         print(release.version)
     elif args.command == "parse":
         from icutk import cli
+        from time import perf_counter
 
+        start = perf_counter()
         design = load_design(args.format, args.file)
+        if design is None:
+            return
+        used = perf_counter() - start
 
         if args.lang == "auto":
             if os.environ.get("LANG", "").startswith("zh"):
@@ -132,5 +242,5 @@ def main():
         else:
             lang = args.lang
 
-        show_tips(design, lang=lang)
+        show_tips(design, used_time=used, lang=lang)
         cli.start({"design": design})
