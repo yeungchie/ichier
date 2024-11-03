@@ -1,7 +1,7 @@
-from typing import Any, Iterable, Optional, Union
+from typing import Any, Iterable, Iterator, Optional, Union
 import re
 
-import ichier
+import ichier.obj as icobj
 
 __all__ = [
     "Fig",
@@ -14,11 +14,18 @@ class Fig:
     __name: str = ""
     __collection: Optional["FigCollection"] = None
 
+    def __init__(self, name: str = "") -> None:
+        self.name = name
+
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.name!r})"
 
     def __str__(self) -> str:
         return self.name
+
+    @property
+    def type(self) -> str:
+        return self.__class__.__name__
 
     @property
     def name(self) -> str:
@@ -35,6 +42,9 @@ class Fig:
         if self.collection is not None:
             self.collection.rename(old, value)
 
+    def _setName(self, value: str) -> None:
+        self.__name = value
+
     @property
     def collection(self) -> Optional["FigCollection"]:
         return self.__collection
@@ -44,11 +54,37 @@ class Fig:
             raise TypeError("value must be a FigCollection or None")
         self.__collection = value
 
+    def getModule(self) -> Optional["icobj.Module"]:
+        collection = self.collection
+        if collection is None:
+            return
+        if isinstance(collection.parent, icobj.Module):
+            return collection.parent
+        else:
+            return None
+
+    def getDesign(self) -> Optional["icobj.Design"]:
+        collection = self.collection
+        if collection is None:
+            return
+        if isinstance(collection.parent, icobj.Module):
+            return collection.parent.getDesign()
+        elif isinstance(collection.parent, icobj.Design):
+            return collection.parent
+        else:
+            return None
+
 
 class Collection(dict):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__()
+        if args == (None,) and not kwargs:
+            return
         self.update(*args, **kwargs)
+
+    @property
+    def type(self) -> str:
+        return self.__class__.__name__
 
     def _keyChecker(self, key: str) -> None:
         if not isinstance(key, str):
@@ -136,10 +172,12 @@ class Collection(dict):
 class FigCollection(Collection):
     def __init__(
         self,
-        parent: Union["ichier.Module", "ichier.Design"],
+        parent: Union["icobj.Module", "icobj.Design"],
         figs: Iterable[Fig] = (),
     ) -> None:
         super().__init__()
+        if not isinstance(parent, (icobj.Module, icobj.Design)):
+            raise TypeError("parent must be a Module or Design")
         self.__parent = parent
         self.extend(figs)
 
@@ -147,7 +185,7 @@ class FigCollection(Collection):
         return f"{self.__class__.__name__}: {len(self)} figs"
 
     @property
-    def parent(self) -> Union["ichier.Module", "ichier.Design"]:
+    def parent(self) -> Union["icobj.Module", "icobj.Design"]:
         return self.__parent
 
     @property
@@ -185,5 +223,13 @@ class FigCollection(Collection):
             raise KeyError(f"{dst} already exists")
         fig: Fig = self.pop(src)
         if fig.name != dst:
-            fig.name = dst
+            fig._setName(dst)
         self.__setitem__(dst, fig)
+
+    def __iter__(self) -> Iterator[Fig]:
+        return iter(self.figs)
+
+    def clear(self) -> None:
+        for v in self.values():
+            v._setCollection(None)
+        return super().clear()

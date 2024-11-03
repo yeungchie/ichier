@@ -13,9 +13,11 @@ PARSER = VerilogParser()
 
 
 def fromFile(file: Union[str, Path]) -> Design:
-    with open(file, "rt", encoding="utf-8") as f:
+    path = Path(file)
+    with open(path, "rt", encoding="utf-8") as f:
         design = fromString(f.read())
-    design.name = str(file)
+    design.name = path.name
+    design.path = path
     return design
 
 

@@ -1,8 +1,8 @@
 from typing import Any, Dict, Iterator, Optional, Sequence, Tuple, Union
 
-from icutk.log import logger
+from icutk.log import getLogger
 
-import ichier
+import ichier.obj as icobj
 from .fig import Fig, FigCollection
 from .utils import flattenSequence, expandTermNetPairs
 
@@ -30,22 +30,16 @@ class Instance(Fig):
         if connection is None:
             connection = {}
         self.connection = connection
-
-        if parameters is None:
-            parameters = {}
-        self.__parameters = ichier.ParameterCollection(parameters)
-
-        self.collection: "ichier.InstanceCollection"
+        self.__parameters = icobj.ParameterCollection(parameters)
+        self.collection: "icobj.InstanceCollection"
 
     @property
-    def reference(self) -> str:
-        return self.__module_name
+    def reference(self) -> "icobj.Reference":
+        return self.__reference
 
     @reference.setter
     def reference(self, value: str) -> None:
-        if not isinstance(value, str):
-            raise TypeError("module_name must be a string")
-        self.__module_name = value
+        self.__reference = icobj.Reference(value, instance=self)
 
     @property
     def connection(
@@ -82,8 +76,28 @@ class Instance(Fig):
             raise TypeError("connection must be a dict or a sequence")
         self.__connection = connect
 
+    def getAssocNets(self) -> Tuple["icobj.Net", ...]:
+        """Get the nets associated with the instance in the module."""
+        module = self.getModule()
+        if module is None:
+            raise ValueError("Instance not in module")
+        nets = set()
+        if isinstance(self.connection, dict):
+            connects = self.connection.values()
+        else:
+            connects = self.connection
+        for net_desc in connects:
+            if isinstance(net_desc, str):
+                if net := module.nets.get(net_desc):
+                    nets.add(net)
+            else:
+                raise ValueError(
+                    f"{net_desc!r} is not a scalar string, maybe you need to rebuild the connection."
+                )
+        return tuple(nets)
+
     @property
-    def parameters(self) -> "ichier.ParameterCollection":
+    def parameters(self) -> "icobj.ParameterCollection":
         return self.__parameters
 
     def __getitem__(self, key: str) -> Any:
@@ -95,16 +109,17 @@ class Instance(Fig):
     def __delitem__(self, key: str) -> None:
         del self.parameters[key]
 
-    def rebuild(self, reference: Optional["ichier.Module"] = None) -> None:
+    def rebuild(self, reference: Optional["icobj.Module"] = None) -> None:
         """Rebuild connection"""
+        logger = getLogger(__name__)
         if reference is None and self.collection is not None:
-            if isinstance(module := self.collection.parent, ichier.Module):
-                if isinstance(modules := module.collection, ichier.ModuleCollection):
+            if isinstance(module := self.collection.parent, icobj.Module):
+                if isinstance(modules := module.collection, icobj.ModuleCollection):
                     reference = modules.get(self.reference)
         else:
             module = None
 
-        if not isinstance(reference, ichier.Module):
+        if not isinstance(reference, icobj.Module):
             reference = None
 
         mod_name = module.name if module is not None else "none"
@@ -169,6 +184,9 @@ class InstanceCollection(FigCollection):
 
     def __getitem__(self, key: Union[int, str]) -> Instance:
         return super().__getitem__(key)
+
+    def get(self, *args: Any, **kwargs: Any) -> Optional[Instance]:
+        return super().get(*args, **kwargs)
 
     def summary(self) -> Dict[str, Any]:
         cate = {}

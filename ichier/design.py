@@ -1,7 +1,8 @@
+from pathlib import Path
 from typing import Any, Dict, Iterable, Iterator, Optional, Literal, Union
 from uuid import uuid4
 
-import ichier
+import ichier.obj as icobj
 from .fig import Fig, FigCollection
 
 __all__ = [
@@ -14,27 +15,35 @@ class Design(Fig):
     def __init__(
         self,
         name: Optional[str] = None,
-        modules: Iterable[ichier.Module] = (),
+        modules: Iterable[icobj.Module] = (),
         parameters: dict = {},
     ) -> None:
         if name is None:
             name = str(uuid4())[:8]
         self.name = name
-        self.__modules = ichier.ModuleCollection(self, modules)
-        self.__parameters = ichier.ParameterCollection(parameters)
+        self.__modules = icobj.ModuleCollection(self, modules)
+        self.__parameters = icobj.ParameterCollection(parameters)
         self.__includes = DesignCollection(self)
 
     @property
-    def modules(self) -> ichier.ModuleCollection:
+    def modules(self) -> icobj.ModuleCollection:
         return self.__modules
 
     @property
-    def parameters(self) -> ichier.ParameterCollection:
+    def parameters(self) -> icobj.ParameterCollection:
         return self.__parameters
 
     @property
     def includes(self) -> "DesignCollection":
         return self.__includes
+
+    @property
+    def path(self) -> Optional[Path]:
+        return self.__path
+
+    @path.setter
+    def path(self, value: Optional[Union[str, Path]]) -> None:
+        self.__path = None if value is None else Path(value)
 
     def summary(
         self,
@@ -65,3 +74,6 @@ class DesignCollection(FigCollection):
 
     def __getitem__(self, key: Union[int, str]) -> Design:
         return super().__getitem__(key)
+
+    def get(self, *args: Any, **kwargs: Any) -> Optional[Design]:
+        return super().get(*args, **kwargs)
