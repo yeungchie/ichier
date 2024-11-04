@@ -24,6 +24,7 @@ class Design(Fig):
         self.__modules = icobj.ModuleCollection(self, modules)
         self.__parameters = icobj.ParameterCollection(parameters)
         self.__includes = DesignCollection(self)
+        self.__path = None
 
     @property
     def modules(self) -> icobj.ModuleCollection:
