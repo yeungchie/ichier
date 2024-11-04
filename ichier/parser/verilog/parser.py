@@ -69,6 +69,8 @@ class VerilogParser:
         design = Design()
         for item in p[1]:
             if isinstance(item, Module):
+                if design.modules.get(item.name) is not None:
+                    continue  # 忽略重复的 module 定义
                 design.modules.append(item)
         p[0] = design
 
