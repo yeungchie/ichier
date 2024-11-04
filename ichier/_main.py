@@ -58,51 +58,70 @@ def load_design(
 ) -> Optional[obj.Design]:
     try:
         if format == "spice":
-            return load_spice(file)
+            return __load_spice(file)
         elif format == "verilog":
-            return load_verilog(file)
+            return __load_verilog(file)
         else:
             raise ValueError(f"Unsupported format: {format}")
+    except KeyboardInterrupt:
+        return
+    except FileNotFoundError as e:
+        raise FileNotFoundError(f"File not found: {e.filename}")
     except Exception as e:
-        raise RuntimeError(f"Error while loading design: {e}")
+        raise RuntimeError(f"Error while loading design.\n{e}")
 
 
-def load_spice(file) -> Optional[obj.Design]:
-    from .parser import fromSpice
+def __load_spice(file) -> obj.Design:
+    if load_progress := create_progress():
+        from icutk.string import LineIterator
+        from .parser.spice import fromFile
 
-    return fromSpice(file)
+        def line_next_cb(lineiter: LineIterator, data: str):
+            if load_progress.finished:
+                return
+            if lineiter.line > load_progress.completed:
+                load_progress.set_completed(lineiter.line)
+
+        with load_progress:
+            path = Path(file)
+            design = fromFile(path, cb_next=line_next_cb)
+            load_progress.done()
+            design.name = path.name
+            design.path = path
+    else:
+        from .parser.spice import fromFile
+
+        design = fromFile(file)
+    return design
 
 
-def load_verilog(file) -> Optional[obj.Design]:
+def __load_verilog(file) -> obj.Design:
     if load_progress := create_progress():
         from icutk.lex import Lexer, LexToken
         from .parser.verilog import VerilogParser
 
-        def verilogInputCB(lexer: Lexer):
+        def verilog_input_cb(lexer: Lexer):
             if not isinstance(lexer.lexdata, str):
                 raise ValueError("lexer.lexdata should be a string")
             load_progress.set_total(lexer.lexdata.count("\n"))
 
-        def verilogTokenCB(lexer: Lexer, token: LexToken):
+        def verilog_token_cb(lexer: Lexer, token: LexToken):
             if load_progress.finished:
                 return
             if lexer.lineno > load_progress.completed:
                 load_progress.set_completed(lexer.lineno)
 
         with load_progress:
-            parser = VerilogParser(cb_input=verilogInputCB, cb_token=verilogTokenCB)
+            parser = VerilogParser(cb_input=verilog_input_cb, cb_token=verilog_token_cb)
             path = Path(file)
-            try:
-                design = parser.parse(path.read_text())
-                load_progress.done()
-                design.name = path.name
-                design.path = path
-            except KeyboardInterrupt:
-                return
+            design = parser.parse(path.read_text())
+            load_progress.done()
+            design.name = path.name
+            design.path = path
     else:
-        from .parser import fromVerilog
+        from .parser.verilog import fromFile
 
-        design = fromVerilog(file)
+        design = fromFile(file)
     return design
 
 

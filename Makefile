@@ -1,4 +1,4 @@
-.PHONY: check tests clean install uninstall build upload iv
+.PHONY: check tests clean install uninstall build upload iv pverilog pspice
 
 PY=python3
 
@@ -31,3 +31,9 @@ upload: dist
 iv:
 	iverilog -o test.vvp.tmp ./tmp/netlist/test.v
 	rm -f test.vvp.tmp
+
+pverilog:
+	python -m ichier parse verilog ./tmp/netlist/top.v
+
+pspice:
+	python -m ichier parse spice ./tmp/netlist/top.cdl
