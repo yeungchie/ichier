@@ -4,10 +4,7 @@ from pathlib import Path
 from ichier import Design
 from .parser import VerilogParser
 
-__all__ = [
-    "fromFile",
-    "fromString",
-]
+__all__ = []
 
 PARSER = VerilogParser()
 
