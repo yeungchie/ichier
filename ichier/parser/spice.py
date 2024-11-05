@@ -43,7 +43,6 @@ def fromIterable(data: Iterable, cb_next: Optional[Callable] = None) -> ichier.D
     return __parse(
         LineIterator(
             data=data,
-            partition="$",
             chomp=True,
             cb_next=cb_next,
         )
@@ -95,8 +94,8 @@ def __subcktParse(lineiter: LineIterator) -> ichier.Module:
     for line in lineiter:
         if line.strip() == "":
             continue  # 跳过空行
-        # elif line.startswith("$"):
-        #     continue  # 跳过 $ 注释
+        elif line.startswith("$"):
+            continue  # 跳过 $ 注释
         elif line.startswith("*"):
             if line.upper().startswith("*.PININFO"):
                 lineiter.revert()
