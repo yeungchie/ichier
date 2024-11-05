@@ -19,8 +19,8 @@ class Instance(Fig):
         reference: str,
         connection: Union[
             None,
-            Dict[str, Union[str, Sequence[str]]],
-            Sequence[Union[str, Sequence[str]]],
+            Dict[str, Union[None, str, Sequence[str]]],
+            Sequence[Union[None, str, Sequence[str]]],
         ] = None,
         parameters: Optional[Dict[str, Any]] = None,
     ) -> None:
@@ -51,8 +51,8 @@ class Instance(Fig):
     def connection(
         self,
         value: Union[
-            Dict[str, Union[str, Sequence[str]]],
-            Sequence[Union[str, Sequence[str]]],
+            Dict[str, Union[None, str, Sequence[str]]],
+            Sequence[Union[None, str, Sequence[str]]],
         ],
     ) -> None:
         if isinstance(value, dict):
@@ -60,7 +60,9 @@ class Instance(Fig):
             for term, net_info in value.items():
                 if not isinstance(term, str):
                     raise TypeError("connect by name, term must be a string")
-                if isinstance(net_info, str):
+                if net_info is None:
+                    continue  # 忽略悬空连接
+                elif isinstance(net_info, str):
                     connect[term] = net_info
                 elif isinstance(net_info, Sequence):
                     connect[term] = flattenSequence(tuple(net_info))
@@ -70,7 +72,7 @@ class Instance(Fig):
                     )
         elif isinstance(value, Sequence):
             connect = flattenSequence(tuple(value))
-            if not all(isinstance(x, str) for x in connect):
+            if not all(x is None or isinstance(x, str) for x in connect):
                 raise TypeError("connect by order, must be a sequence of strings")
         else:
             raise TypeError("connection must be a dict or a sequence")
