@@ -27,6 +27,9 @@ setup(
     install_requires=Path("requirements.txt").read_text("utf-8").split(),
     keywords=[
         PROJECT,
+        "verilog",
+        "spice",
+        "cdl",
         "ic",
         "hierarchy",
         "linux",

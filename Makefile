@@ -23,7 +23,7 @@ uninstall:
 	
 build:
 	make clean
-	$(PY) setup.py build sdist bdist_wheel
+	$(PY) setup.py build bdist_wheel
 
 upload: dist
 	$(PY) -m twine upload dist/*
