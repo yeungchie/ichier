@@ -16,7 +16,7 @@ class Design(Fig):
         self,
         name: Optional[str] = None,
         modules: Iterable[icobj.Module] = (),
-        parameters: dict = {},
+        parameters: Optional[dict] = None,
     ) -> None:
         if name is None:
             name = str(uuid4())[:8]
