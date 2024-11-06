@@ -4,6 +4,8 @@ from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union
 from icutk.string import LineIterator
 import ichier
 
+from ichier.utils.escape import makeSafeString
+
 __all__ = []
 
 
@@ -238,6 +240,11 @@ def __subcktInstanceParse(lineiter: LineIterator) -> Tuple[ichier.Instance, List
             ref_name = ref_name[2:-1]
 
         connect_info = nets_and_ref[:-1]
+
+    if isinstance(connect_info, dict):
+        connect_info = {t: makeSafeString(n) for t, n in connect_info.items()}
+    elif isinstance(connect_info, list):
+        connect_info = [makeSafeString(n) for n in connect_info]
 
     inst = ichier.Instance(
         name=inst_name,
