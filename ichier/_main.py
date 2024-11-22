@@ -76,6 +76,9 @@ def __load_spice(file) -> obj.Design:
         from icutk.string import LineIterator
         from .parser.spice import fromFile
 
+        def line_init_cb(lineiter: LineIterator):
+            load_progress.set_total(lineiter.total_lines)
+
         def line_next_cb(lineiter: LineIterator, data: str):
             if load_progress.finished:
                 return
@@ -84,7 +87,7 @@ def __load_spice(file) -> obj.Design:
 
         with load_progress:
             path = Path(file)
-            design = fromFile(path, cb_next=line_next_cb)
+            design = fromFile(path, cb_init=line_init_cb, cb_next=line_next_cb)
             load_progress.done()
             design.name = path.name
             design.path = path

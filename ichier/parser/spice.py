@@ -27,25 +27,35 @@ class SpiceInstanceError(SpiceFormatError):
 
 def fromFile(
     file: Union[str, Path],
+    cb_init: Optional[Callable] = None,
     cb_next: Optional[Callable] = None,
 ) -> ichier.Design:
     path = Path(file)
     with open(path, "rt", encoding="utf-8") as f:
-        design = fromIterable(f.readlines(), cb_next=cb_next)
+        design = fromIterable(f.readlines(), cb_init=cb_init, cb_next=cb_next)
     design.name = path.name
     design.path = path
     return design
 
 
-def fromString(string: str, cb_next: Optional[Callable] = None) -> ichier.Design:
-    return fromIterable(string.splitlines(), cb_next=cb_next)
+def fromString(
+    string: str,
+    cb_init: Optional[Callable] = None,
+    cb_next: Optional[Callable] = None,
+) -> ichier.Design:
+    return fromIterable(string.splitlines(), cb_init=cb_init, cb_next=cb_next)
 
 
-def fromIterable(data: Iterable, cb_next: Optional[Callable] = None) -> ichier.Design:
+def fromIterable(
+    data: Iterable,
+    cb_init: Optional[Callable] = None,
+    cb_next: Optional[Callable] = None,
+) -> ichier.Design:
     return __parse(
         LineIterator(
             data=data,
             chomp=True,
+            cb_init=cb_init,
             cb_next=cb_next,
         )
     )
