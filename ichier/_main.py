@@ -115,12 +115,16 @@ def __load_verilog(file) -> obj.Design:
                 load_progress.set_completed(lexer.lineno)
 
         with load_progress:
-            parser = VerilogParser(cb_input=verilog_input_cb, cb_token=verilog_token_cb)
+            vparser = VerilogParser(
+                cb_input=verilog_input_cb,
+                cb_token=verilog_token_cb,
+            )
             path = Path(file)
-            design = parser.parse(path.read_text())
+            design = vparser.parse(path.read_text())
             load_progress.done()
             design.name = path.name
             design.path = path
+            design.modules.rebuild(mute=True, verilog_style=True)
     else:
         from .parser.verilog import fromFile
 

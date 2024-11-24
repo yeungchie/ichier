@@ -77,13 +77,18 @@ class Module(Fig):
         else:
             raise ValueError("type must be 'compact' or 'detail'")
 
-    def rebuild(self) -> None:
+    def rebuild(
+        self,
+        *,
+        mute: bool = False,
+        verilog_style: bool = False,
+    ) -> None:
         """Rebuild the module.
 
         Rebuild all instances connection, then recreating all nets for this module.
         """
-        self.instances.rebuild()
-        self.nets.rebuild()
+        self.instances.rebuild(mute=mute, verilog_style=verilog_style)
+        self.nets.rebuild(mute=mute)
 
     def makeModule(
         self,
@@ -196,11 +201,16 @@ class ModuleCollection(FigCollection):
             "list": [module.summary(info_type) for module in self.figs],
         }
 
-    def rebuild(self) -> None:
-        logger = getLogger(__name__)
+    def rebuild(
+        self,
+        *,
+        mute: bool = False,
+        verilog_style: bool = False,
+    ) -> None:
+        logger = getLogger(__name__, mute=mute)
         for fig in self:
             logger.info(f"Rebuilding module {fig.name!r} ...")
-            fig.rebuild()
+            fig.rebuild(mute=mute, verilog_style=verilog_style)
 
 
 class Reference(str):
