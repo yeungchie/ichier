@@ -1,4 +1,4 @@
-from typing import Callable, List, Literal, Optional, Union
+from typing import Callable, Dict, List, Literal, Optional, Union
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -43,14 +43,16 @@ class ModuleSpecifyItem(dict):
     pass
 
 
-class ModulePortDict(dict):
+class FCFSDict(dict):  # 先到先得
     def filling(self, other: dict) -> None:
-        for name, dir in other.items():
+        for name, value in other.items():
             if name in self:
-                if self[name] != dir:
-                    raise ValueError(f"Conflict direction of port {name}")
+                if self[name] != value:
+                    raise ValueError(
+                        f"Conflict value of {name} - {self[name]}, {value}"
+                    )
             else:
-                self[name] = dir
+                self[name] = value
 
 
 @dataclass
@@ -103,8 +105,17 @@ class VerilogParser:
                 |  module_head  ENDMODULE
         """
         module_name = p[1]["module_name"]
-        port_order = {name: [] for name in p[1]["port_order"]}
-        port_dir = ModulePortDict()
+        port_order: Dict[str, list] = {}
+        port_dir = FCFSDict()
+        for name, dir in p[1]["port_order"]:
+            port_order[name] = []
+            if dir is not None:  # 存在提前声明的端口方向
+                try:
+                    port_dir.filling({name: dir})
+                except ValueError:
+                    raise ValueError(
+                        f"Conflict port direction {name!r} in {module_name!r}"
+                    )
         nets = {}
         insts = {}
         params = {"specify": {}}
@@ -120,7 +131,12 @@ class VerilogParser:
                             if port_name not in port_order:
                                 raise ValueError(f"Undefined port {name!r}")
                             port_order[port_name].append(name)
-                            port_dir.filling({name: item.type})
+                            try:
+                                port_dir.filling({name: item.type})
+                            except ValueError:
+                                raise ValueError(
+                                    f"Conflict port direction {name!r} in {module_name!r}"
+                                )
                 elif isinstance(item, ModuleInstItem):
                     insts[item.name] = Instance(
                         name=item.name,
@@ -129,10 +145,14 @@ class VerilogParser:
                     )
                 elif isinstance(item, ModuleSpecifyItem):
                     params["specify"].update(item)
-        terms = []
+
+        terms: List[Terminal] = []
         for port, members in port_order.items():
             for member in members or [port]:
                 terms.append(Terminal(name=member, direction=port_dir[member]))
+
+        nets.update({term.name: Net(name=term.name) for term in terms})
+
         p[0] = Module(
             name=module_name,
             terminals=terms,
@@ -175,10 +195,16 @@ class VerilogParser:
 
     def p_net_type(self, p):  # 端口方向和网络关键字
         """
-        net_type  :  INPUT
-                  |  OUTPUT
-                  |  INOUT
-                  |  WIRE
+        net_type  :  WIRE
+                  |  io_type
+        """
+        p[0] = p[1]
+
+    def p_io_type(self, p):  # 端口方向关键字
+        """
+        io_type  :  INPUT
+                 |  OUTPUT
+                 |  INOUT
         """
         p[0] = p[1]
 
@@ -302,7 +328,7 @@ class VerilogParser:
 
     def p_module_head(self, p):  # 模块声明头部
         """
-        module_head  :  MODULE  id  '('  id_list  ')'  ';'
+        module_head  :  MODULE  id  '('  port_list  ')'  ';'
                      |  MODULE  id  ';'
         """
         data = {
@@ -312,6 +338,40 @@ class VerilogParser:
         if len(p) == 7:
             data["port_order"] = p[4]
         p[0] = data
+
+    def p_port_list(self, p):  # 模块端口声明
+        """
+        port_list  :  port_list_without_dir
+                   |  port_list_with_dir
+        """
+        p[0] = p[1]
+
+    def p_port_list_with_dir(self, p):  # 带方向的模块端口列表
+        """
+        port_list_with_dir  :  port_list_with_dir  ','  port_with_dir
+                            |  port_with_dir
+        """
+        p[0] = p[1]
+        if len(p) == 4:
+            p[0] += p[3]
+
+    def p_port_with_dir(self, p):  # 带方向的模块端口
+        """
+        port_with_dir  :  io_type  ID
+                       |  io_type  range  ID
+        """
+        net_type = p[1]
+        if len(p) == 3:
+            net_names = [p[2]]
+        else:
+            net_names = ["%s[%d]" % (p[3], i) for i in p[2]]
+        p[0] = [(name, net_type) for name in net_names]
+
+    def p_port_list_without_dir(self, p):  # 不带方向的模块端口列表
+        """
+        port_list_without_dir  :  id_list
+        """
+        p[0] = [(name, None) for name in p[1]]
 
     def p_id_list(self, p):
         """
@@ -347,14 +407,14 @@ class VerilogParser:
 
     def p_specparam(self, p):
         """
-        specparam  :  SPECPARAM  id  '='  scalar  ';'
+        specparam  :  SPECPARAM  id  '='  constant  ';'
         """
         p[0] = {p[2]: p[4]}
 
-    def p_scalar(self, p):  # 标量
+    def p_constant(self, p):  # 常量
         """
-        scalar  :  num
-                |  STRING
+        constant  :  num
+                  |  STRING
         """
         p[0] = p[1]
 
