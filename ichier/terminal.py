@@ -1,6 +1,7 @@
-from typing import Any, Dict, Iterator, Optional, Literal, Union
+from typing import Any, Dict, Iterator, Optional, Literal, Tuple, Union
 
 from .fig import Fig, FigCollection
+from .net import bitInfoSplit
 
 __all__ = [
     "Terminal",
@@ -29,6 +30,9 @@ class Terminal(Fig):
         if value not in ["input", "output", "inout"]:
             raise ValueError("direction must be 'input', 'output', or 'inout'")
         self.__direction = value
+
+    def split(self) -> Tuple[str, Optional[int]]:
+        return bitInfoSplit(self.name)
 
 
 class TerminalCollection(FigCollection):

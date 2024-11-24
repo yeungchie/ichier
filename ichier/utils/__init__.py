@@ -45,7 +45,7 @@ def expandTermNetPairs(
         for i in range(count - 1, -1, -1):
             pairs[f"{term}[{i}]"] = f"{net}[{i}]"
     elif isinstance(term, str) and isinstance(net, Iterable):
-        nets = list(net)
+        nets = list(map(str, net))
         for i, net in zip(range(len(nets) - 1, -1, -1), nets):
             if "<" in net:
                 ls, rs = "<", ">"
@@ -53,7 +53,7 @@ def expandTermNetPairs(
                 ls, rs = "[", "]"
             pairs[f"{term}{ls}{i}{rs}"] = net
     elif isinstance(term, Iterable) and isinstance(net, str):
-        terms = list(term)
+        terms = list(map(str, term))
         for term, i in zip(terms, range(len(terms) - 1, -1, -1)):
             if "<" in term:
                 ls, rs = "<", ">"
@@ -61,8 +61,8 @@ def expandTermNetPairs(
                 ls, rs = "[", "]"
             pairs[term] = f"{net}{ls}{i}{rs}"
     elif isinstance(term, Iterable) and isinstance(net, Iterable):
-        terms = list(term)
-        nets = list(net)
+        terms = list(map(str, term))
+        nets = list(map(str, net))
         if len(terms) != len(nets):
             raise ValueError("term and net must have the same length")
         for term, net in zip(terms, nets):

@@ -76,6 +76,9 @@ def __load_spice(file) -> obj.Design:
         from icutk.string import LineIterator
         from .parser.spice import fromFile
 
+        def line_init_cb(lineiter: LineIterator):
+            load_progress.set_total(lineiter.total_lines)
+
         def line_next_cb(lineiter: LineIterator, data: str):
             if load_progress.finished:
                 return
@@ -84,7 +87,7 @@ def __load_spice(file) -> obj.Design:
 
         with load_progress:
             path = Path(file)
-            design = fromFile(path, cb_next=line_next_cb)
+            design = fromFile(path, cb_init=line_init_cb, cb_next=line_next_cb)
             load_progress.done()
             design.name = path.name
             design.path = path
@@ -112,12 +115,16 @@ def __load_verilog(file) -> obj.Design:
                 load_progress.set_completed(lexer.lineno)
 
         with load_progress:
-            parser = VerilogParser(cb_input=verilog_input_cb, cb_token=verilog_token_cb)
+            vparser = VerilogParser(
+                cb_input=verilog_input_cb,
+                cb_token=verilog_token_cb,
+            )
             path = Path(file)
-            design = parser.parse(path.read_text())
+            design = vparser.parse(path.read_text())
             load_progress.done()
             design.name = path.name
             design.path = path
+            design.modules.rebuild(mute=True, verilog_style=True)
     else:
         from .parser.verilog import fromFile
 

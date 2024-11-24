@@ -111,9 +111,15 @@ class Instance(Fig):
     def __delitem__(self, key: str) -> None:
         del self.parameters[key]
 
-    def rebuild(self, reference: Optional["icobj.Module"] = None) -> None:
+    def rebuild(
+        self,
+        *,
+        reference: Optional["icobj.Module"] = None,
+        mute: bool = False,
+        verilog_style: bool = False,
+    ) -> None:
         """Rebuild connection"""
-        logger = getLogger(__name__)
+        logger = getLogger(__name__, mute=mute)
         if reference is None and self.collection is not None:
             if isinstance(module := self.collection.parent, icobj.Module):
                 if isinstance(modules := module.collection, icobj.ModuleCollection):
@@ -134,13 +140,39 @@ class Instance(Fig):
             connect = {}
             for term, net_desc in self.connection.items():
                 if isinstance(net_desc, str):  # 一对一连接
-                    if (
-                        reference and reference.terminals.get(term) is None
-                    ):  # 检查 terminal 是否存在
-                        raise ValueError(
-                            f"term {term!r} not found in module {reference.name!r}"
-                        )
-                    connect[term] = net_desc
+                    if reference:
+                        if reference.terminals.get(term) is not None:
+                            connect[term] = net_desc
+                        else:
+                            # 找不到对应 terminal
+                            if (
+                                verilog_style
+                                and term.isidentifier()
+                                and net_desc.isidentifier()
+                            ):
+                                # 参考 Verilog 语法风格，且连接描述的可能是总线连接
+                                if terms := reference.terminals.find(rf"{term}\[\d+\]"):
+                                    if nets := reference.nets.find(
+                                        rf"{net_desc}\[\d+\]"
+                                    ):
+                                        # 模块内已有 net 参考
+                                        connect.update(expandTermNetPairs(terms, nets))
+                                    else:
+                                        # 模块内无 net 参考，尝试自动生成 net 名称
+                                        connect.update(
+                                            expandTermNetPairs(terms, net_desc)
+                                        )
+                                else:
+                                    raise ValueError(
+                                        f"term '{term!s}[\\d+]' not found in module {reference.name!r}"
+                                    )
+                            else:
+                                # 不是参考 Verilog 语法风格，或者连接描述无法拓展为总线连接
+                                raise ValueError(
+                                    f"term {term!r} not found in module {reference.name!r}"
+                                )
+                    else:
+                        connect[term] = net_desc
                 elif isinstance(net_desc, tuple):  # 一对多连接
                     if reference:
                         result = reference.terminals.find(rf"{term}(\[\d+\]|<\d+>)")
@@ -201,6 +233,11 @@ class InstanceCollection(FigCollection):
             "categories": cate,
         }
 
-    def rebuild(self) -> None:
+    def rebuild(
+        self,
+        *,
+        mute: bool = False,
+        verilog_style: bool = False,
+    ) -> None:
         for fig in self:
-            fig.rebuild()
+            fig.rebuild(mute=mute, verilog_style=verilog_style)

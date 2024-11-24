@@ -1,9 +1,11 @@
 from typing import Any, Dict, Iterator, Optional, Tuple, Union
+import re
 
 from icutk.log import getLogger
 
 import ichier.obj as icobj
 from .fig import Fig, FigCollection
+from .utils.escape import EscapeString
 
 __all__ = [
     "Net",
@@ -28,6 +30,9 @@ class Net(Fig):
                 insts.add(inst)
         return tuple(insts)
 
+    def split(self) -> Tuple[str, Optional[int]]:
+        return bitInfoSplit(self.name)
+
 
 class NetCollection(FigCollection):
     def _valueChecker(self, fig: Net) -> None:
@@ -48,13 +53,13 @@ class NetCollection(FigCollection):
             "total": len(self),
         }
 
-    def rebuild(self) -> None:
+    def rebuild(self, *, mute: bool = False) -> None:
         """Recreating all nets in the module."""
         module = self.parent
         if not isinstance(module, icobj.Module):
             raise ValueError("parent module must be specified")
 
-        logger = getLogger(__name__)
+        logger = getLogger(__name__, mute=mute)
         logger.info(f"Rebuilding module {module.name!r} nets ...")
 
         all_nets = set()
@@ -76,3 +81,14 @@ class NetCollection(FigCollection):
         # create new
         self.clear()
         self.extend(Net(name) for name in all_nets)
+
+
+def bitInfoSplit(name: str) -> Tuple[str, Optional[int]]:
+    if isinstance(name, EscapeString):
+        return name, None
+    if m := re.fullmatch(r"(?P<head>[a-zA-Z_]\W*)\[(?P<index>\d+)\]", name):
+        return m.group("head"), int(m.group("index"))
+    elif m := re.fullmatch(r"(?P<head>[a-zA-Z_]\W*)<(?P<index>\d+)>", name):
+        return m.group("head"), int(m.group("index"))
+    else:
+        return name, None
