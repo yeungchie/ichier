@@ -1,7 +1,7 @@
 from typing import Any, Iterable, Iterator, Optional, Union
 import re
 
-import ichier.obj as icobj
+from . import obj
 
 __all__ = [
     "Fig",
@@ -54,22 +54,22 @@ class Fig:
             raise TypeError("value must be a FigCollection or None")
         self.__collection = value
 
-    def getModule(self) -> Optional["icobj.Module"]:
+    def getModule(self) -> Optional["obj.Module"]:
         collection = self.collection
         if collection is None:
             return
-        if isinstance(collection.parent, icobj.Module):
+        if isinstance(collection.parent, obj.Module):
             return collection.parent
         else:
             return None
 
-    def getDesign(self) -> Optional["icobj.Design"]:
+    def getDesign(self) -> Optional["obj.Design"]:
         collection = self.collection
         if collection is None:
             return
-        if isinstance(collection.parent, icobj.Module):
+        if isinstance(collection.parent, obj.Module):
             return collection.parent.getDesign()
-        elif isinstance(collection.parent, icobj.Design):
+        elif isinstance(collection.parent, obj.Design):
             return collection.parent
         else:
             return None
@@ -172,11 +172,11 @@ class Collection(dict):
 class FigCollection(Collection):
     def __init__(
         self,
-        parent: Union["icobj.Module", "icobj.Design"],
+        parent: Union["obj.Module", "obj.Design"],
         figs: Iterable[Fig] = (),
     ) -> None:
         super().__init__()
-        if not isinstance(parent, (icobj.Module, icobj.Design)):
+        if not isinstance(parent, (obj.Module, obj.Design)):
             raise TypeError("parent must be a Module or Design")
         self.__parent = parent
         self.extend(figs)
@@ -185,7 +185,7 @@ class FigCollection(Collection):
         return f"{self.__class__.__name__}: {len(self)} figs"
 
     @property
-    def parent(self) -> Union["icobj.Module", "icobj.Design"]:
+    def parent(self) -> Union["obj.Module", "obj.Design"]:
         return self.__parent
 
     @property

@@ -5,7 +5,7 @@ from typing import Literal, Optional, Union
 import os
 
 from . import release
-from . import obj
+from .node import obj
 
 
 def parse_arguments():

@@ -13,7 +13,7 @@ from collections import defaultdict
 
 from icutk.log import getLogger
 
-import ichier.obj as icobj
+from . import obj
 from .fig import Fig, FigCollection
 
 __all__ = [
@@ -27,31 +27,31 @@ class Module(Fig):
     def __init__(
         self,
         name: str,
-        terminals: Iterable["icobj.Terminal"] = (),
-        nets: Iterable["icobj.Net"] = (),
-        instances: Iterable["icobj.Instance"] = (),
+        terminals: Iterable["obj.Terminal"] = (),
+        nets: Iterable["obj.Net"] = (),
+        instances: Iterable["obj.Instance"] = (),
         parameters: Optional[Dict[str, Any]] = None,
     ) -> None:
         self.name = name
-        self.__terminals = icobj.TerminalCollection(self, terminals)
-        self.__nets = icobj.NetCollection(self, nets)
-        self.__instances = icobj.InstanceCollection(self, instances)
-        self.__parameters = icobj.ParameterCollection(parameters)
+        self.__terminals = obj.TerminalCollection(self, terminals)
+        self.__nets = obj.NetCollection(self, nets)
+        self.__instances = obj.InstanceCollection(self, instances)
+        self.__parameters = obj.ParameterCollection(parameters)
 
     @property
-    def terminals(self) -> "icobj.TerminalCollection":
+    def terminals(self) -> "obj.TerminalCollection":
         return self.__terminals
 
     @property
-    def instances(self) -> "icobj.InstanceCollection":
+    def instances(self) -> "obj.InstanceCollection":
         return self.__instances
 
     @property
-    def nets(self) -> "icobj.NetCollection":
+    def nets(self) -> "obj.NetCollection":
         return self.__nets
 
     @property
-    def parameters(self) -> "icobj.ParameterCollection":
+    def parameters(self) -> "obj.ParameterCollection":
         return self.__parameters
 
     def summary(
@@ -93,8 +93,8 @@ class Module(Fig):
     def makeModule(
         self,
         name: str,
-        instances: Iterable[Union[str, "icobj.Instance"]],
-        to_design: Optional["icobj.Design"] = None,
+        instances: Iterable[Union[str, "obj.Instance"]],
+        to_design: Optional["obj.Design"] = None,
     ) -> "Module":
         """Create a new module with the given instances.
 
@@ -109,7 +109,7 @@ class Module(Fig):
         The new module.
         """
         if to_design is not None:
-            if not isinstance(to_design, icobj.Design):
+            if not isinstance(to_design, obj.Design):
                 raise TypeError("to_design must be a Design")
             design = to_design
         else:
@@ -119,8 +119,8 @@ class Module(Fig):
                 f"Module {name!r} already exists in design {design.name!r}"
             )
 
-        insts: Set[icobj.Instance] = set()
-        nets: Set[icobj.Net] = set()
+        insts: Set[obj.Instance] = set()
+        nets: Set[obj.Net] = set()
         net_dirs: DefaultDict[str, set] = defaultdict(set)
 
         for i in instances:
@@ -164,7 +164,7 @@ class Module(Fig):
                 dir = "inout"  # inout 其次
             else:
                 dir = "input"  # input 最低
-            terms.append(icobj.Terminal(name=tname, direction=dir))
+            terms.append(obj.Terminal(name=tname, direction=dir))
 
         module = Module(
             name=name,
@@ -214,11 +214,11 @@ class ModuleCollection(FigCollection):
 
 
 class Reference(str):
-    def __new__(cls, name: str, instance: "icobj.Instance"):
+    def __new__(cls, name: str, instance: "obj.Instance"):
         return super().__new__(cls, name)
 
-    def __init__(self, name: str, instance: "icobj.Instance") -> None:
-        if not isinstance(instance, icobj.Instance):
+    def __init__(self, name: str, instance: "obj.Instance") -> None:
+        if not isinstance(instance, obj.Instance):
             raise TypeError("instance must be an Instance")
         self.__name = str(self)
         self.__instance = instance
@@ -238,7 +238,7 @@ class Reference(str):
         return self.__name
 
     @property
-    def instance(self) -> "icobj.Instance":
+    def instance(self) -> "obj.Instance":
         return self.__instance
 
     def getMaster(self) -> Optional[Module]:
