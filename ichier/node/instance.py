@@ -130,8 +130,10 @@ class Instance(Fig):
         if not isinstance(reference, obj.Module):
             reference = None
 
-        mod_name = module.name if module is not None else "none"
-        ref_name = reference.name if reference is not None else "none"
+        mod_name = "(NONE)" if module is None else module.name
+        ref_name = self.reference.name
+        if reference is None:
+            ref_name += "(MISS)"
         logger.info(
             f"Rebuilding module {mod_name!r} instance '{ref_name}:{self.name}' ..."
         )

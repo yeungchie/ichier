@@ -60,7 +60,6 @@ class NetCollection(FigCollection):
             raise ValueError("parent module must be specified")
 
         logger = getLogger(__name__, mute=mute)
-        logger.info(f"Rebuilding module {module.name!r} nets ...")
 
         all_nets = set()
 
@@ -80,7 +79,9 @@ class NetCollection(FigCollection):
 
         # create new
         self.clear()
-        self.extend(Net(name) for name in all_nets)
+        for name in all_nets:
+            self.append(Net(name))
+            logger.info(f"Rebuilding module {module.name!r} net {name!r} ...")
 
 
 def bitInfoSplit(name: str) -> Tuple[str, Optional[int]]:
