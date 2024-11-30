@@ -215,10 +215,16 @@ def show_tips(design: obj.Design, used_time: float, lang: Literal["en", "zh"] = 
                         """)
     else:
         raise ValueError(f"Unsupported language: {lang}")
+
+    modules_lines = repr(design.modules).splitlines(keepends=True)
+    modules_repr = modules_lines[0]
+    for line in modules_lines[1:]:
+        modules_repr += " " * 36 + f"# {line}"
+
     code = dedent(f"""\
                     design          # {design!r}
                     design.path     # {design.path!r}
-                    design.modules  # {design.modules!r}
+                    design.modules  # {modules_repr}
 
                     for module in design.modules:       # iterate over modules in the design
                         for inst in module.instances:   # iterate over instances in each module

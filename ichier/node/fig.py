@@ -182,7 +182,13 @@ class FigCollection(Collection):
         self.extend(figs)
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}: {len(self)} figs"
+        s = f"{self.__class__.__name__}: {len(self)} figs\n"
+        if len(self) <= 8:
+            s += repr(tuple(self.values()))
+        else:
+            queue = [repr(x) for x in self.values()]
+            s += "(" + ",\n ".join(queue[:6] + ["..."] + queue[-2:]) + ")"
+        return s
 
     @property
     def parent(self) -> Union["obj.Module", "obj.Design"]:
