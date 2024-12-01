@@ -1,4 +1,4 @@
-from typing import Any, Iterable, Iterator, Optional, Union
+from typing import Any, Iterable, Iterator, Literal, Optional, Union
 import re
 
 from . import obj
@@ -73,6 +73,31 @@ class Fig:
             return collection.parent
         else:
             return None
+
+    def dump(
+        self,
+        format: Literal["spice", "verilog"] = "spice",
+        *,
+        width_limit: int = 88,
+    ) -> str:
+        if format == "spice":
+            return self.dumpToSpice(width_limit=width_limit)
+        elif format == "verilog":
+            return self.dumpToVerilog(width_limit=width_limit)
+        else:
+            raise ValueError(f"Unsupported format {format!r}")
+
+    def dumpToSpice(self, *args, **kwargs) -> str:
+        raise NotImplementedError(
+            f"Dump to spice is disabled for the {self.__class__.__name__!r}."
+            " Please try to dump the parent node instead."
+        )
+
+    def dumpToVerilog(self, *args, **kwargs) -> str:
+        raise NotImplementedError(
+            f"Dump to verilog is disabled for the {self.__class__.__name__!r}."
+            " Please try to dump the parent node instead."
+        )
 
 
 class Collection(dict):
@@ -239,3 +264,6 @@ class FigCollection(Collection):
         for v in self.values():
             v._setCollection(None)
         return super().clear()
+
+    def dump(self, *args, **kwargs) -> str:
+        return "\n".join(fig.dump(*args, **kwargs) for fig in self)

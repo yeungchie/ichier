@@ -1,4 +1,5 @@
 from typing import Any, Dict, Iterator, Optional, Sequence, Tuple, Union
+from textwrap import wrap
 
 from icutk.log import getLogger
 
@@ -208,6 +209,24 @@ class Instance(Fig):
                 )
         else:
             raise TypeError("connection must be dict, list or tuple.")
+
+    def dumpToSpice(self, *, width_limit: int = 88) -> str:
+        tokens = [self.name]
+        if isinstance(self.connection, dict):
+            tokens += ["/", self.reference.name, "$PINS"]
+            for term, net in self.connection.items():
+                tokens.append(f"{term!s}={net!s}")
+        else:
+            for net in self.connection:
+                tokens.append(str(net))
+            tokens += ["/", self.reference.name]
+        return "\n".join(
+            wrap(
+                " ".join(tokens),
+                width=width_limit,
+                subsequent_indent="+ ",
+            )
+        )
 
 
 class InstanceCollection(FigCollection):

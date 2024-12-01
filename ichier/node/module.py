@@ -10,6 +10,7 @@ from typing import (
     Union,
 )
 from collections import defaultdict
+from textwrap import wrap
 
 from icutk.log import getLogger
 
@@ -177,6 +178,44 @@ class Module(Fig):
 
         module.rebuild()
         return module
+
+    def dumpToSpice(self, *, width_limit: int = 88) -> str:
+        # head
+        head = "\n".join(
+            wrap(
+                " ".join([".SUBCKT", self.name, *[t.name for t in self.terminals]]),
+                width=width_limit,
+                subsequent_indent="+ ",
+            )
+        )
+
+        # pininfo items
+        pin_pairs = []
+        for t in self.terminals:
+            pair = [t.name]
+            if t.direction == "input":
+                pair.append("I")
+            elif t.direction == "output":
+                pair.append("O")
+            elif t.direction == "inout":
+                pair.append("B")
+            pin_pairs.append(":".join(pair))
+
+        pininfo = "\n".join(
+            wrap(
+                " ".join(pin_pairs),
+                width=width_limit,
+                initial_indent="*.PININFO ",
+                subsequent_indent="*.PININFO ",
+            )
+        )
+
+        # instance items
+        insts = "\n".join(
+            i.dumpToSpice(width_limit=width_limit) for i in self.instances
+        )
+
+        return "\n".join(x for x in [head, pininfo, insts, ".ENDS"] if x != "")
 
 
 class ModuleCollection(FigCollection):

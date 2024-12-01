@@ -64,6 +64,11 @@ class Design(Fig):
         else:
             raise ValueError("Invalid type")
 
+    def dumpToSpice(self, *, width_limit: int = 88) -> str:
+        return "\n\n\n".join(
+            m.dumpToSpice(width_limit=width_limit) for m in self.modules
+        )
+
 
 class DesignCollection(FigCollection):
     def _valueChecker(self, value: Design) -> None:
