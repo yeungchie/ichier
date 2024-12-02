@@ -208,11 +208,11 @@ class FigCollection(Collection):
 
     def __repr__(self) -> str:
         s = f"{self.__class__.__name__}: {len(self)} figs\n"
-        if len(self) <= 8:
+        if len(self) <= 6:
             s += repr(tuple(self.values()))
         else:
             queue = [repr(x) for x in self.values()]
-            s += "(" + ",\n ".join(queue[:6] + ["..."] + queue[-2:]) + ")"
+            s += "(" + ",\n ".join(queue[:4] + ["..."] + queue[-2:]) + ")"
         return s
 
     @property
