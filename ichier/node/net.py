@@ -1,11 +1,10 @@
 from typing import Any, Dict, Iterator, Optional, Tuple, Union
-import re
 
 from icutk.log import getLogger
 
 from . import obj
 from .fig import Fig, FigCollection
-from ..utils.escape import EscapeString
+from ..utils import bitInfoSplit
 
 __all__ = [
     "Net",
@@ -21,7 +20,6 @@ class Net(Fig):
             raise ValueError("Instance not in module")
         insts = set()
         for inst in module.instances:
-            inst: obj.Instance
             if isinstance(inst.connection, tuple):
                 nets = inst.connection
             elif isinstance(inst.connection, dict):
@@ -82,14 +80,3 @@ class NetCollection(FigCollection):
         for name in all_nets:
             self.append(Net(name))
             logger.info(f"Rebuilding module {module.name!r} net {name!r} ...")
-
-
-def bitInfoSplit(name: str) -> Tuple[str, Optional[int]]:
-    if isinstance(name, EscapeString):
-        return name, None
-    if m := re.fullmatch(r"(?P<head>[a-zA-Z_]\W*)\[(?P<index>\d+)\]", name):
-        return m.group("head"), int(m.group("index"))
-    elif m := re.fullmatch(r"(?P<head>[a-zA-Z_]\W*)<(?P<index>\d+)>", name):
-        return m.group("head"), int(m.group("index"))
-    else:
-        return name, None
