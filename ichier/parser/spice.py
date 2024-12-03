@@ -2,8 +2,9 @@ from pathlib import Path
 from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 from icutk.string import LineIterator
-import ichier
 
+import ichier
+from ichier.node import BuiltIn
 from ichier.utils.escape import makeSafeString
 
 __all__ = []
@@ -176,11 +177,11 @@ def __subcktParamParse(lineiter: LineIterator) -> Dict[str, str]:
 
 def __subcktInstanceParse(lineiter: LineIterator) -> Tuple[ichier.Instance, List[str]]:
     """
-    1. active device / connect by order:
+    1. user device / connect by order:
 
     `X1 Y A VSS VSS nmos m=1`
 
-    2. passive device / connect by order:
+    2. built-in device / connect by order:
 
     `X2 A VSS $[res] w=1 l=2`
 
@@ -247,7 +248,7 @@ def __subcktInstanceParse(lineiter: LineIterator) -> Tuple[ichier.Instance, List
 
         ref_name = nets_and_ref[-1]
         if ref_name.startswith("$[") and ref_name.endswith("]"):
-            ref_name = ref_name[2:-1]
+            ref_name = BuiltIn(ref_name[2:-1])
 
         connect_info = nets_and_ref[:-1]
 

@@ -21,6 +21,7 @@ __all__ = [
     "Module",
     "ModuleCollection",
     "Reference",
+    "BuiltIn",
 ]
 
 
@@ -237,7 +238,7 @@ class ModuleCollection(FigCollection):
     ) -> Dict[str, Any]:
         return {
             "total": len(self),
-            "list": [module.summary(info_type) for module in self.figs],
+            "list": [module.summary(info_type) for module in self],
         }
 
     def rebuild(
@@ -253,17 +254,17 @@ class ModuleCollection(FigCollection):
 
 
 class Reference(str):
-    def __new__(cls, name: str, instance: "obj.Instance"):
+    def __new__(cls, name: str, instance: Optional["obj.Instance"] = None):
         return super().__new__(cls, name)
 
-    def __init__(self, name: str, instance: "obj.Instance") -> None:
-        if not isinstance(instance, obj.Instance):
+    def __init__(self, name: str, instance: Optional["obj.Instance"] = None) -> None:
+        if instance is not None and not isinstance(instance, obj.Instance):
             raise TypeError("instance must be an Instance")
         self.__name = str(self)
         self.__instance = instance
 
     def __repr__(self) -> str:
-        return f"Reference({super().__repr__()})"
+        return f"{self.type}({super().__repr__()})"
 
     def __str__(self) -> str:
         return super().__str__()
@@ -277,11 +278,18 @@ class Reference(str):
         return self.__name
 
     @property
-    def instance(self) -> "obj.Instance":
+    def instance(self) -> Optional["obj.Instance"]:
         return self.__instance
 
     def getMaster(self) -> Optional[Module]:
+        if self.instance is None:
+            return
         design = self.instance.getDesign()
         if design is None:
             return
         return design.modules.get(self.name)
+
+
+class BuiltIn(Reference):
+    def getMaster(self) -> None:
+        raise NotImplementedError("Built-in devices do not have master")

@@ -40,7 +40,11 @@ class Instance(Fig):
 
     @reference.setter
     def reference(self, value: str) -> None:
-        self.__reference = obj.Reference(value, instance=self)
+        if isinstance(value, obj.BuiltIn):
+            ref_cls = obj.BuiltIn
+        else:
+            ref_cls = obj.Reference
+        self.__reference = ref_cls(value, instance=self)
 
     @property
     def connection(
@@ -212,14 +216,26 @@ class Instance(Fig):
 
     def dumpToSpice(self, *, width_limit: int = 88) -> str:
         tokens = [self.name]
-        if isinstance(self.connection, dict):
-            tokens += ["/", self.reference.name, "$PINS"]
-            for term, net in self.connection.items():
-                tokens.append(f"{term!s}={net!s}")
+        if isinstance(self.reference, obj.BuiltIn):
+            if isinstance(self.connection, dict):
+                for net in self.connection.values():
+                    if not isinstance(net, str):
+                        raise TypeError("net must be a string")
+                    tokens.append(net)
+            else:
+                tokens += self.connection
+            tokens.append(f"$[{self.reference.name}]")
         else:
-            for net in self.connection:
-                tokens.append(str(net))
-            tokens += ["/", self.reference.name]
+            if isinstance(self.connection, dict):
+                tokens += ["/", self.reference.name, "$PINS"]
+                for term, net in self.connection.items():
+                    if not isinstance(net, str):
+                        raise TypeError("net must be a string")
+                    tokens.append(f"{term!s}={net!s}")
+            else:
+                for net in self.connection:
+                    tokens.append(str(net))
+                tokens += ["/", self.reference.name]
         return "\n".join(
             wrap(
                 " ".join(tokens),
