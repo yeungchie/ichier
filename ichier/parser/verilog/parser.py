@@ -160,6 +160,7 @@ class VerilogParser:
             instances=insts.values(),
             parameters=params,
         )
+        p[0].lineno = p[1]["lineno"]
 
     def p_module_item_list(self, p):  # 模块项列表
         """
@@ -326,14 +327,21 @@ class VerilogParser:
             step = -1
         p[0] = range(start, end + step, step)
 
+    def p_module_id(self, p):  # 模块标识符，方便记录行号
+        """
+        module_id  :  MODULE
+        """
+        p[0] = p.lexer.lexer.lineno
+
     def p_module_head(self, p):  # 模块声明头部
         """
-        module_head  :  MODULE  id  '('  port_list  ')'  ';'
-                     |  MODULE  id  ';'
+        module_head  :  module_id  id  '('  port_list  ')'  ';'
+                     |  module_id  id  ';'
         """
         data = {
             "module_name": p[2],
             "port_order": [],
+            "lineno": p[1],
         }
         if len(p) == 7:
             data["port_order"] = p[4]

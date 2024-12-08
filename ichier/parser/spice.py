@@ -66,10 +66,12 @@ def __parse(lineiter: LineIterator) -> ichier.Design:
     design = ichier.Design()
     for line in lineiter:
         if line.upper().startswith(".SUBCKT"):
+            lineno = lineiter.line
             lineiter.revert()
             module = __subcktParse(lineiter)
             if design.modules.get(module.name) is not None:
                 continue  # 忽略重复的 subckt 定义
+            module.lineno = lineno
             design.modules.append(module)
     return design
 

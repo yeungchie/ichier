@@ -129,6 +129,7 @@ def __load_verilog(file) -> obj.Design:
         from .parser.verilog import fromFile
 
         design = fromFile(file)
+        design.modules.rebuild(mute=True, verilog_style=True)
     return design
 
 

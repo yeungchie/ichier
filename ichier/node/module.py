@@ -39,6 +39,7 @@ class Module(Fig):
         self.__nets = obj.NetCollection(self, nets)
         self.__instances = obj.InstanceCollection(self, instances)
         self.__parameters = obj.ParameterCollection(parameters)
+        self.__lienno = None
 
     @property
     def terminals(self) -> "obj.TerminalCollection":
@@ -55,6 +56,14 @@ class Module(Fig):
     @property
     def parameters(self) -> "obj.ParameterCollection":
         return self.__parameters
+
+    @property
+    def lineno(self) -> Optional[int]:
+        return self.__lienno
+
+    @lineno.setter
+    def lineno(self, value: Optional[int]) -> None:
+        self.__lienno = value
 
     def summary(
         self,
