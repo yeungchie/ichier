@@ -1,5 +1,6 @@
 from pathlib import Path
-from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Callable, Dict, List, Optional, Tuple, Union
+import re
 
 from icutk.string import LineIterator
 
@@ -26,16 +27,26 @@ class SpiceInstanceError(SpiceFormatError):
     pass
 
 
+class SpiceIncludeError(SpiceFormatError):
+    pass
+
+
 def fromFile(
     file: Union[str, Path],
     cb_init: Optional[Callable] = None,
     cb_next: Optional[Callable] = None,
 ) -> ichier.Design:
     path = Path(file)
-    with open(path, "rt", encoding="utf-8") as f:
-        design = fromIterable(f.readlines(), cb_init=cb_init, cb_next=cb_next)
+    design = fromString(
+        string=path.read_text("utf-8"),
+        cb_init=cb_init,
+        cb_next=cb_next,
+    )
     design.name = path.name
     design.path = path
+    for m in design.modules:
+        if m.path is None:
+            m.path = path
     return design
 
 
@@ -44,26 +55,51 @@ def fromString(
     cb_init: Optional[Callable] = None,
     cb_next: Optional[Callable] = None,
 ) -> ichier.Design:
-    return fromIterable(string.splitlines(), cb_init=cb_init, cb_next=cb_next)
+    includes: List[ichier.Design] = []
+    design = __fromString(
+        string,
+        cb_init=cb_init,
+        cb_next=cb_next,
+        includes=includes,
+    )
+    for d in includes:
+        design.includeOtherDesign(d)
+    return design
 
 
-def fromIterable(
-    data: Iterable,
+def __fromFile(file: Union[str, Path], **kwargs) -> ichier.Design:
+    path = Path(file)
+    design = __fromString(path.read_text("utf-8"), **kwargs)
+    design.name = path.name
+    design.path = path
+    return design
+
+
+def __fromString(
+    string: str,
     cb_init: Optional[Callable] = None,
     cb_next: Optional[Callable] = None,
+    priority: Tuple[int, ...] = (),
+    includes: Optional[list] = None,
 ) -> ichier.Design:
     return __parse(
         LineIterator(
-            data=data,
-            chomp=True,
+            data=string.splitlines(),
             cb_init=cb_init,
             cb_next=cb_next,
-        )
+        ),
+        priority=priority,
+        includes=includes,
     )
 
 
-def __parse(lineiter: LineIterator) -> ichier.Design:
-    design = ichier.Design()
+def __parse(
+    lineiter: LineIterator,
+    priority: Tuple[int, ...] = (),
+    includes: Optional[list] = None,
+) -> ichier.Design:
+    design = ichier.Design(priority=priority)
+    index = 0
     for line in lineiter:
         if line.upper().startswith(".SUBCKT"):
             lineno = lineiter.line
@@ -73,6 +109,20 @@ def __parse(lineiter: LineIterator) -> ichier.Design:
                 continue  # 忽略重复的 subckt 定义
             module.lineno = lineno
             design.modules.append(module)
+        elif line.upper().startswith(".INCLUDE"):
+            if includes is None:
+                continue
+            if m := re.fullmatch(r"\.INCLUDE\s+\"?([^\"\s]*)\"?", line, re.IGNORECASE):
+                d = __fromFile(
+                    m.group(1),
+                    priority=priority + (index,),
+                )
+                index += 1
+                includes.append(d)
+            else:
+                raise SpiceIncludeError(
+                    f"Invalid include statement at line {lineiter.line}:\n>>> {line}"
+                )
     return design
 
 

@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import (
     Any,
     DefaultDict,
@@ -40,6 +41,7 @@ class Module(Fig):
         self.__instances = obj.InstanceCollection(self, instances)
         self.__parameters = obj.ParameterCollection(parameters)
         self.__lienno = None
+        self.__path = None
 
     @property
     def terminals(self) -> "obj.TerminalCollection":
@@ -64,6 +66,16 @@ class Module(Fig):
     @lineno.setter
     def lineno(self, value: Optional[int]) -> None:
         self.__lienno = value
+
+    @property
+    def path(self) -> Optional[Path]:
+        return self.__path
+
+    @path.setter
+    def path(self, value: Optional[Union[str, Path]]) -> None:
+        if value is not None:
+            value = Path(value)
+        self.__path = value
 
     def summary(
         self,
