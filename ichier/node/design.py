@@ -75,9 +75,14 @@ class Design(Fig):
             if other.path is not None:
                 m.path = other.path
             if m.name in self.modules:
+                selfm = self.modules[m.name]
                 self_priority = self.priority + (self.modules[m.name].lineno,)
                 other_priority = other.priority + (m.lineno,)
-                if self_priority > other_priority:
+                if selfm.lineno is not None:
+                    self_priority += (selfm.lineno,)
+                if m.lineno is not None:
+                    other_priority += (m.lineno,)
+                if not self_priority < other_priority:
                     self.modules[m.name] = m
             else:
                 self.modules.append(m)
