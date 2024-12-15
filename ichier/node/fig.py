@@ -200,9 +200,11 @@ class FigCollection(Collection):
         parent: Union["obj.Module", "obj.Design"],
         figs: Iterable[Fig] = (),
     ) -> None:
-        super().__init__()
         if not isinstance(parent, (obj.Module, obj.Design)):
-            raise TypeError("parent must be a Module or Design")
+            raise TypeError(f"parent must be a Module or Design - {parent!r}")
+        if isinstance(figs, str):
+            raise TypeError(f"figs must be an iterable of Fig - {figs!r}")
+        super().__init__()
         self.__parent = parent
         self.extend(figs)
 
