@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import Any, Dict, Iterator, Optional, Sequence, Tuple, Union
 from textwrap import wrap
 
@@ -32,10 +33,10 @@ class Instance(Fig):
             connection = {}
         self.connection = connection
         self.__parameters = obj.ParameterCollection(parameters)
-        self.collection: "obj.InstanceCollection"
+        self.collection: obj.InstanceCollection
 
     @property
-    def reference(self) -> "obj.Reference":
+    def reference(self) -> obj.Reference:
         return self.__reference
 
     @reference.setter
@@ -83,7 +84,7 @@ class Instance(Fig):
             raise TypeError("connection must be a dict or a sequence")
         self.__connection = connect
 
-    def getAssocNets(self) -> Tuple["obj.Net", ...]:
+    def getAssocNets(self) -> Tuple[obj.Net, ...]:
         """Get the nets associated with the instance in the module."""
         module = self.getModule()
         if module is None:
@@ -104,7 +105,7 @@ class Instance(Fig):
         return tuple(nets)
 
     @property
-    def parameters(self) -> "obj.ParameterCollection":
+    def parameters(self) -> obj.ParameterCollection:
         return self.__parameters
 
     def __getitem__(self, key: str) -> Any:
@@ -119,7 +120,7 @@ class Instance(Fig):
     def rebuild(
         self,
         *,
-        reference: Optional["obj.Module"] = None,
+        reference: Optional[obj.Module] = None,
         mute: bool = False,
         verilog_style: bool = False,
     ) -> None:

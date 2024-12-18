@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import Any, Iterable, Iterator, Literal, Optional, Union
 import re
 
@@ -54,7 +55,7 @@ class Fig:
             raise TypeError("value must be a FigCollection or None")
         self.__collection = value
 
-    def getModule(self) -> Optional["obj.Module"]:
+    def getModule(self) -> Optional[obj.Module]:
         collection = self.collection
         if collection is None:
             return
@@ -63,7 +64,7 @@ class Fig:
         else:
             return None
 
-    def getDesign(self) -> Optional["obj.Design"]:
+    def getDesign(self) -> Optional[obj.Design]:
         collection = self.collection
         if collection is None:
             return
@@ -197,7 +198,7 @@ class Collection(dict):
 class FigCollection(Collection):
     def __init__(
         self,
-        parent: Union["obj.Module", "obj.Design"],
+        parent: Union[obj.Module, obj.Design],
         figs: Iterable[Fig] = (),
     ) -> None:
         if not isinstance(parent, (obj.Module, obj.Design)):
@@ -218,7 +219,7 @@ class FigCollection(Collection):
         return s
 
     @property
-    def parent(self) -> Union["obj.Module", "obj.Design"]:
+    def parent(self) -> Union[obj.Module, obj.Design]:
         return self.__parent
 
     @property

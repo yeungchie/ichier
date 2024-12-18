@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from __future__ import annotations
 from pathlib import Path
 from typing import Any, Dict, Iterable, Iterator, Optional, Literal, Tuple, Union
 from uuid import uuid4
@@ -16,7 +16,7 @@ class Design(Fig):
     def __init__(
         self,
         name: Optional[str] = None,
-        modules: Iterable["obj.Module"] = (),
+        modules: Iterable[obj.Module] = (),
         parameters: Optional[dict] = None,
         priority: Tuple[int, ...] = (),
     ) -> None:
@@ -29,11 +29,11 @@ class Design(Fig):
         self.__path = None
 
     @property
-    def modules(self) -> "obj.ModuleCollection":
+    def modules(self) -> obj.ModuleCollection:
         return self.__modules
 
     @property
-    def parameters(self) -> "obj.ParameterCollection":
+    def parameters(self) -> obj.ParameterCollection:
         return self.__parameters
 
     @property

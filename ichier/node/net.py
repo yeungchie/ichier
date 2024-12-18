@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import Any, Dict, Iterator, Optional, Tuple, Union
 
 from icutk.log import getLogger
@@ -13,7 +14,7 @@ __all__ = [
 
 
 class Net(Fig):
-    def getAssocInstances(self) -> Tuple["obj.Instance", ...]:
+    def getAssocInstances(self) -> Tuple[obj.Instance, ...]:
         """Get the instances associated with the net in the module."""
         module = self.getModule()
         if module is None:

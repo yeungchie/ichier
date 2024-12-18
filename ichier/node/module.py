@@ -1,3 +1,4 @@
+from __future__ import annotations
 from pathlib import Path
 from typing import (
     Any,
@@ -30,9 +31,9 @@ class Module(Fig):
     def __init__(
         self,
         name: str,
-        terminals: Iterable["obj.Terminal"] = (),
-        nets: Iterable["obj.Net"] = (),
-        instances: Iterable["obj.Instance"] = (),
+        terminals: Iterable[obj.Terminal] = (),
+        nets: Iterable[obj.Net] = (),
+        instances: Iterable[obj.Instance] = (),
         parameters: Optional[Dict[str, Any]] = None,
     ) -> None:
         self.name = name
@@ -44,19 +45,19 @@ class Module(Fig):
         self.__path = None
 
     @property
-    def terminals(self) -> "obj.TerminalCollection":
+    def terminals(self) -> obj.TerminalCollection:
         return self.__terminals
 
     @property
-    def instances(self) -> "obj.InstanceCollection":
+    def instances(self) -> obj.InstanceCollection:
         return self.__instances
 
     @property
-    def nets(self) -> "obj.NetCollection":
+    def nets(self) -> obj.NetCollection:
         return self.__nets
 
     @property
-    def parameters(self) -> "obj.ParameterCollection":
+    def parameters(self) -> obj.ParameterCollection:
         return self.__parameters
 
     @property
@@ -116,8 +117,8 @@ class Module(Fig):
     def makeModule(
         self,
         name: str,
-        instances: Iterable[Union[str, "obj.Instance"]],
-        to_design: Optional["obj.Design"] = None,
+        instances: Iterable[Union[str, obj.Instance]],
+        to_design: Optional[obj.Design] = None,
     ) -> "Module":
         """Create a new module with the given instances.
 
@@ -275,10 +276,10 @@ class ModuleCollection(FigCollection):
 
 
 class Reference(str):
-    def __new__(cls, name: str, instance: Optional["obj.Instance"] = None):
+    def __new__(cls, name: str, instance: Optional[obj.Instance] = None):
         return super().__new__(cls, name)
 
-    def __init__(self, name: str, instance: Optional["obj.Instance"] = None) -> None:
+    def __init__(self, name: str, instance: Optional[obj.Instance] = None) -> None:
         if instance is not None and not isinstance(instance, obj.Instance):
             raise TypeError("instance must be an Instance")
         self.__name = str(self)
@@ -299,7 +300,7 @@ class Reference(str):
         return self.__name
 
     @property
-    def instance(self) -> Optional["obj.Instance"]:
+    def instance(self) -> Optional[obj.Instance]:
         return self.__instance
 
     def getMaster(self) -> Optional[Module]:
