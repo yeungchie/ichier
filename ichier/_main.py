@@ -146,15 +146,6 @@ def __load_verilog(file) -> obj.Design:
     return design
 
 
-def create_progress():
-    try:
-        from .utils.progress import LoadProgress
-
-        return LoadProgress(clear=False)
-    except ImportError:
-        return
-
-
 def show_tips(design: obj.Design, used_time: float, lang: Literal["en", "zh"] = "en"):
     title = f"IC Hierarchy {release.version}"
     if lang == "en":
