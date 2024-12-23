@@ -41,6 +41,7 @@ def fromFile(
         string=path.read_text("utf-8"),
         cb_init=cb_init,
         cb_next=cb_next,
+        path=path,
     )
     design.name = path.name
     design.path = path
@@ -54,6 +55,7 @@ def fromString(
     string: str,
     cb_init: Optional[Callable] = None,
     cb_next: Optional[Callable] = None,
+    path: Optional[Path] = None,
 ) -> ichier.Design:
     includes: List[ichier.Design] = []
     design = __fromString(
@@ -61,6 +63,7 @@ def fromString(
         cb_init=cb_init,
         cb_next=cb_next,
         includes=includes,
+        path=path,
     )
     for d in includes:
         design.includeOtherDesign(d)
@@ -69,6 +72,7 @@ def fromString(
 
 def __fromFile(file: Union[str, Path], **kwargs) -> ichier.Design:
     path = Path(file)
+    kwargs["path"] = path
     design = __fromString(path.read_text("utf-8"), **kwargs)
     design.name = path.name
     design.path = path
@@ -81,13 +85,17 @@ def __fromString(
     cb_next: Optional[Callable] = None,
     priority: Tuple[int, ...] = (),
     includes: Optional[list] = None,
+    path: Optional[Path] = None,
 ) -> ichier.Design:
+    lineiter = LineIterator(
+        data=string.splitlines(),
+        cb_init=cb_init,
+        cb_next=cb_next,
+    )
+    lineiter.path = path  # type: ignore
+    lineiter.priority = priority  # type: ignore
     return __parse(
-        LineIterator(
-            data=string.splitlines(),
-            cb_init=cb_init,
-            cb_next=cb_next,
-        ),
+        lineiter=lineiter,
         priority=priority,
         includes=includes,
     )
@@ -116,6 +124,8 @@ def __parse(
                 d = __fromFile(
                     m.group(1),
                     priority=priority + (index,),
+                    cb_init=lineiter.cb_init,
+                    cb_next=lineiter.cb_next,
                 )
                 index += 1
                 includes.append(d)
