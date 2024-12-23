@@ -107,10 +107,9 @@ def __parse(
     includes: Optional[list] = None,
 ) -> ichier.Design:
     design = ichier.Design(priority=priority)
-    index = 0
     for line in lineiter:
+        lineno = lineiter.line
         if line.upper().startswith(".SUBCKT"):
-            lineno = lineiter.line
             lineiter.revert()
             module = __subcktParse(lineiter)
             if design.modules.get(module.name) is not None:
@@ -123,11 +122,10 @@ def __parse(
             if m := re.fullmatch(r"\.INCLUDE\s+\"?([^\"\s]*)\"?", line, re.IGNORECASE):
                 d = __fromFile(
                     m.group(1),
-                    priority=priority + (index,),
+                    priority=priority + (lineno,),
                     cb_init=lineiter.cb_init,
                     cb_next=lineiter.cb_next,
                 )
-                index += 1
                 includes.append(d)
             else:
                 raise SpiceIncludeError(
