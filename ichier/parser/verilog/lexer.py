@@ -31,7 +31,7 @@ class VerilogLexer(MetaLexer):
 
     def t_ESC_ID(self, t: LexToken):
         r"\\\S+"
-        t.value = EscapeString(t.value[1:])
+        t.value = EscapeString(t.value)
         return t
 
     def t_ID(self, t: LexToken):
