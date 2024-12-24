@@ -89,15 +89,8 @@ class VerilogParser:
     def p_design_item(self, p):  # 设计项
         """
         design_item  :  module
-                     |  include
         """
         p[0] = p[1]
-
-    def p_include(self, p):  # 包含外部网表文件
-        """
-        include  :  INCLUDE
-        """
-        p[0] = Include(path=p[1])
 
     def p_module(self, p):  # 模块定义
         """

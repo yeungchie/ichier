@@ -17,7 +17,6 @@ class VerilogLexer(MetaLexer):
         "specparam": "SPECPARAM",
         "endspecify": "ENDSPECIFY",
         "endmodule": "ENDMODULE",
-        "`include": "INCLUDE",
     }
 
     tokens = (
@@ -57,20 +56,7 @@ class VerilogLexer(MetaLexer):
 
     def t_pre_proc(self, t: LexToken):
         r"`\w.*"
-        proc, _, value = t.value.partition(" ")
-        t_type = self.reserved.get(proc)
-        if t_type is None:
-            return
-        t.type = t_type
-        if t.type == "INCLUDE":
-            value = value.strip()
-            if value.startswith('"') and value.endswith('"'):
-                t.value = value[1:-1]
-            else:
-                raise ValueError(f"Invalid include value: {t.value!r}")
-        else:
-            return
-        return t
+        pass
 
     def t_newline(self, t: LexToken):
         r"\n+"
