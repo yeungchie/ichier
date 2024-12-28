@@ -1,3 +1,5 @@
+from pathlib import Path
+from typing import Optional, Tuple, Union
 from icutk.lex import BaseLexer, LexToken
 from ichier.utils.escape import EscapeString
 
@@ -25,6 +27,17 @@ class VerilogLexer(BaseLexer):
         *BaseLexer.tokens,
         *reserved.values(),
     ]
+
+    def __init__(
+        self,
+        *args,
+        priority: Tuple[int, ...] = (),
+        path: Optional[Union[str, Path]] = None,
+        **kwargs,
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self.lexer.priority = priority
+        self.lexer.path = path
 
     def t_ESC_ID(self, t: LexToken):
         r"\\\S+"

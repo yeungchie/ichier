@@ -1,4 +1,5 @@
-from typing import Callable, Dict, List, Literal, Optional, Union
+from pathlib import Path
+from typing import Callable, Dict, List, Literal, Optional, Tuple, Union
 from dataclasses import dataclass
 
 from ply.yacc import yacc
@@ -415,10 +416,14 @@ class VerilogParser:
         *,
         cb_input: Optional[Callable] = None,
         cb_token: Optional[Callable] = None,
+        priority: Tuple[int, ...] = (),
+        path: Optional[Union[str, Path]] = None,
     ):
         self.lexer = VerilogLexer(
             cb_input=cb_input,
             cb_token=cb_token,
+            priority=priority,
+            path=path,
         )
         self.tokens = self.lexer.tokens
         self.parser = yacc(module=self, debug=False, write_tables=False)

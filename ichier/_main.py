@@ -122,6 +122,8 @@ def __load_verilog(file) -> obj.Design:
             task: LoadTask = lexer.task  # type: ignore
             if task.isdone():
                 return
+            if task.current == 0:
+                task.description = f"{"  "*len(lexer.priority)}{lexer.path.name}"  # type: ignore
             task.current = lexer.lineno
 
         with load_progress:

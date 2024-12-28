@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Callable, Optional, Union
+from typing import Callable, Optional, Tuple, Union
 from pathlib import Path
 import re
 
@@ -23,6 +23,7 @@ def fromFile(
             rebuild=rebuild,
             cb_input=cb_input,
             cb_token=cb_token,
+            path=path,
         )
     design.name = path.name
     design.path = path
@@ -38,6 +39,7 @@ def fromString(
     rebuild: bool = False,
     cb_input: Optional[Callable] = None,
     cb_token: Optional[Callable] = None,
+    path: Optional[Union[str, Path]] = None,
 ) -> Design:
     queue = []
     designs = []
@@ -48,6 +50,7 @@ def fromString(
                 rebuild=False,
                 cb_input=cb_input,
                 cb_token=cb_token,
+                path=path,
             )
         elif isinstance(item, NetlistFile):
             d = __fromFile(
@@ -55,6 +58,7 @@ def fromString(
                 rebuild=False,
                 cb_input=cb_input,
                 cb_token=cb_token,
+                priority=item.priority,
             )
             d.priority = item.priority
         designs.append(d)
@@ -72,6 +76,7 @@ def __fromFile(
     rebuild: bool = False,
     cb_input: Optional[Callable] = None,
     cb_token: Optional[Callable] = None,
+    priority: Tuple[int, ...] = (),
 ) -> Design:
     path = Path(file)
     with open(path, "rt", encoding="utf-8") as f:
@@ -80,6 +85,8 @@ def __fromFile(
             rebuild=rebuild,
             cb_input=cb_input,
             cb_token=cb_token,
+            priority=priority,
+            path=path,
         )
     design.name = path.name
     design.path = path
@@ -92,8 +99,15 @@ def __fromString(
     rebuild: bool = False,
     cb_input: Optional[Callable] = None,
     cb_token: Optional[Callable] = None,
+    priority: Tuple[int, ...] = (),
+    path: Optional[Union[str, Path]] = None,
 ) -> Design:
-    vparser = VerilogParser(cb_input=cb_input, cb_token=cb_token)
+    vparser = VerilogParser(
+        cb_input=cb_input,
+        cb_token=cb_token,
+        priority=priority,
+        path=path,
+    )
     design = vparser.parse(string)
     if rebuild:
         for m in design.modules:
