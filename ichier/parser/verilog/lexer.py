@@ -1,4 +1,4 @@
-from icutk.lex import MetaLexer, LexToken
+from icutk.lex import BaseLexer, LexToken
 from ichier.utils.escape import EscapeString
 
 __all__ = [
@@ -6,7 +6,7 @@ __all__ = [
 ]
 
 
-class VerilogLexer(MetaLexer):
+class VerilogLexer(BaseLexer):
     reserved = {
         "module": "MODULE",
         "input": "INPUT",
@@ -19,15 +19,12 @@ class VerilogLexer(MetaLexer):
         "endmodule": "ENDMODULE",
     }
 
-    tokens = (
-        "ID",  # abc
+    tokens = [
         "ESC_ID",  # \abc
-        "FLOAT",  # 1.23
-        "INT",  # 10
         "STRING",  # "abc"
-    ) + tuple(reserved.values())
-
-    literals = "()[]{}=;,:."
+        *BaseLexer.tokens,
+        *reserved.values(),
+    ]
 
     def t_ESC_ID(self, t: LexToken):
         r"\\\S+"
@@ -56,11 +53,6 @@ class VerilogLexer(MetaLexer):
 
     def t_pre_proc(self, t: LexToken):
         r"`\w.*"
-        pass
-
-    def t_newline(self, t: LexToken):
-        r"\n+"
-        t.lexer.lineno += t.value.count("\n")
         pass
 
     def t_comment_line(self, t: LexToken):
