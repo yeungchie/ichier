@@ -72,10 +72,11 @@ def load_design(
 
 
 def __load_spice(file) -> obj.Design:
+    from .parser import fromSpice
+
     try:
         from .utils.progress import LoadProgress, LoadTask
         from icutk.string import LineIterator
-        from .parser.spice import fromFile
 
         load_progress = LoadProgress()
 
@@ -94,29 +95,25 @@ def __load_spice(file) -> obj.Design:
             task.current = lineiter.line
 
         with load_progress:
-            path = Path(file)
-            design = fromFile(path, cb_init=line_init_cb, cb_next=line_next_cb)
-            design.name = path.name
-            design.path = path
+            design = fromSpice(file, cb_init=line_init_cb, cb_next=line_next_cb)
     except ImportError:
-        from .parser.spice import fromFile
-
-        design = fromFile(file)
+        design = fromSpice(file)
     return design
 
 
 def __load_verilog(file) -> obj.Design:
+    from .parser import fromVerilog
+
     try:
         from .utils.progress import LoadProgress, LoadTask
         from icutk.lex import Lexer, LexToken
-        from .parser.verilog import VerilogParser
 
         load_progress = LoadProgress()
 
         def verilog_input_cb(lexer: Lexer):
             if not isinstance(lexer.lexdata, str):
                 raise ValueError("lexer.lexdata should be a string")
-            id = load_progress.add("Parsing ...")
+            id = load_progress.add("Verilog")
             task = load_progress.task(id)
             task.total = lexer.lexdata.count("\n") + 1
             lexer.task = task  # type: ignore
@@ -128,21 +125,14 @@ def __load_verilog(file) -> obj.Design:
             task.current = lexer.lineno
 
         with load_progress:
-            vparser = VerilogParser(
+            design = fromVerilog(
+                file,
                 cb_input=verilog_input_cb,
                 cb_token=verilog_token_cb,
             )
-            path = Path(file)
-            design = vparser.parse(path.read_text())
-            # load_progress.done()
-            design.name = path.name
-            design.path = path
-            design.modules.rebuild(mute=True, verilog_style=True)
     except ImportError:
-        from .parser.verilog import fromFile
-
-        design = fromFile(file)
-        design.modules.rebuild(mute=True, verilog_style=True)
+        design = fromVerilog(file)
+    design.modules.rebuild(mute=True, verilog_style=True)
     return design
 
 
