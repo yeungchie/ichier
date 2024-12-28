@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Optional, Union
+from typing import Callable, Optional, Union
 from pathlib import Path
 import re
 
@@ -9,10 +9,21 @@ from .parser import VerilogParser
 __all__ = []
 
 
-def fromFile(file: Union[str, Path], *, rebuild: bool = False) -> Design:
+def fromFile(
+    file: Union[str, Path],
+    *,
+    rebuild: bool = False,
+    cb_input: Optional[Callable] = None,
+    cb_token: Optional[Callable] = None,
+) -> Design:
     path = Path(file)
     with open(path, "rt", encoding="utf-8") as f:
-        design = fromString(f.read(), rebuild=rebuild)
+        design = fromString(
+            f.read(),
+            rebuild=rebuild,
+            cb_input=cb_input,
+            cb_token=cb_token,
+        )
     design.name = path.name
     design.path = path
     for m in design.modules:
@@ -21,14 +32,30 @@ def fromFile(file: Union[str, Path], *, rebuild: bool = False) -> Design:
     return design
 
 
-def fromString(string: str, *, rebuild: bool = False) -> Design:
+def fromString(
+    string: str,
+    *,
+    rebuild: bool = False,
+    cb_input: Optional[Callable] = None,
+    cb_token: Optional[Callable] = None,
+) -> Design:
     queue = []
     designs = []
     for item in parseHier(string, queue=queue):
         if isinstance(item, NetlistString):
-            d = __fromString(item.string, rebuild=False)
+            d = __fromString(
+                item.string,
+                rebuild=False,
+                cb_input=cb_input,
+                cb_token=cb_token,
+            )
         elif isinstance(item, NetlistFile):
-            d = __fromFile(item.path, rebuild=False)
+            d = __fromFile(
+                item.path,
+                rebuild=False,
+                cb_input=cb_input,
+                cb_token=cb_token,
+            )
             d.priority = item.priority
         designs.append(d)
     design = Design()
@@ -39,17 +66,34 @@ def fromString(string: str, *, rebuild: bool = False) -> Design:
     return design
 
 
-def __fromFile(file: Union[str, Path], *, rebuild: bool = False) -> Design:
+def __fromFile(
+    file: Union[str, Path],
+    *,
+    rebuild: bool = False,
+    cb_input: Optional[Callable] = None,
+    cb_token: Optional[Callable] = None,
+) -> Design:
     path = Path(file)
     with open(path, "rt", encoding="utf-8") as f:
-        design = __fromString(f.read(), rebuild=rebuild)
+        design = __fromString(
+            string=f.read(),
+            rebuild=rebuild,
+            cb_input=cb_input,
+            cb_token=cb_token,
+        )
     design.name = path.name
     design.path = path
     return design
 
 
-def __fromString(string: str, *, rebuild: bool = False) -> Design:
-    vparser = VerilogParser()
+def __fromString(
+    string: str,
+    *,
+    rebuild: bool = False,
+    cb_input: Optional[Callable] = None,
+    cb_token: Optional[Callable] = None,
+) -> Design:
+    vparser = VerilogParser(cb_input=cb_input, cb_token=cb_token)
     design = vparser.parse(string)
     if rebuild:
         for m in design.modules:
