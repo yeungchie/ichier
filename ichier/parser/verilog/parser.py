@@ -1,6 +1,5 @@
 from typing import Callable, Dict, List, Literal, Optional, Union
 from dataclasses import dataclass
-from pathlib import Path
 
 from ply.yacc import yacc
 
@@ -10,27 +9,6 @@ from ichier import Design, Module, Instance, Terminal, Net
 __all__ = [
     "VerilogParser",
 ]
-
-
-class Include:
-    def __init__(self, path: Union[str, Path]) -> None:
-        self.path = path
-
-    @property
-    def path(self) -> Path:
-        return self.__path
-
-    @path.setter
-    def path(self, value: Union[str, Path]) -> None:
-        self.__path = Path(value)
-
-    def __repr__(self) -> str:
-        return f"Include({self.path})"
-
-    def read(self) -> str:
-        return self.path.read_text()
-
-    def parse(self) -> "Design": ...
 
 
 @dataclass
