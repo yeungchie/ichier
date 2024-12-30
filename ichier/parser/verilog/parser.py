@@ -429,4 +429,6 @@ class VerilogParser:
         self.parser = yacc(module=self, debug=False, write_tables=False)
 
     def parse(self, text) -> Design:
-        return self.parser.parse(text, lexer=self.lexer)
+        design = self.parser.parse(text, lexer=self.lexer)
+        design.priority = self.lexer.lexer.priority
+        return design
