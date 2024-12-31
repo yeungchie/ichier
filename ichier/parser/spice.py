@@ -121,12 +121,16 @@ def __fromString(
         cb_init=cb_init,
         cb_next=cb_next,
     )
-    lineiter.path = Path(path)  # type: ignore
     lineiter.priority = priority  # type: ignore
-    return __parse(
+    design = __parse(
         lineiter=lineiter,
         priority=priority,
     )
+    if path is not None:
+        path = Path(path)
+        design.path = path
+        design.name = path.name
+    return design
 
 
 def removeComments(string: str) -> str:
