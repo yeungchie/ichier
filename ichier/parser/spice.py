@@ -122,12 +122,14 @@ def __fromString(
         cb_next=cb_next,
     )
     lineiter.priority = priority  # type: ignore
+    if path is not None:
+        path = Path(path)
+        lineiter.path = path  # type: ignore
     design = __parse(
         lineiter=lineiter,
         priority=priority,
     )
     if path is not None:
-        path = Path(path)
         design.path = path
         design.name = path.name
     return design
@@ -181,7 +183,6 @@ class NetlistFile:
 def __parse(
     lineiter: LineIterator,
     priority: Tuple[int, ...] = (),
-    # includes: Optional[list] = None,
 ) -> ichier.Design:
     design = ichier.Design(priority=priority)
     for line in lineiter:
