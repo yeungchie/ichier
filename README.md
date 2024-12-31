@@ -10,7 +10,7 @@
 2. **终端和网络定义**：可以轻松定义模块之间的连接，通过设置输入输出端口 `Terminal` 和内部网络 `net` 来描述电路的交互。
 3. **实例化模块**：允许将模块实例化多次，以便在设计中复用特定的功能，比如在一个电路中多次使用同一个逻辑门。
 
-4. **代码解析**：支持解析 SPICE 和 Verilog 格式的电路文件，生成 `Design` 对象，方便分析电路结构和参数，提取设计信息。
+4. **代码解析**：支持解析 Spice 和 Verilog 格式的电路文件，生成 `Design` 对象，方便分析电路结构和参数，提取设计信息。
 5. **命令行交互**：支持在 Python 中启动交互式 shell，方便对电路的信息进行查询。
 
 ## 安装
@@ -95,9 +95,39 @@ buf.nets.figs
 # (Net('A'), Net('Z'), Net('inter'))
 ```
 
++ 导出为 Spice
+
+```python
+print(design.dumpToSpice())
+# .SUBCKT inv A Z
+# *.PININFO A:I Z:O
+# .ENDS
+
+
+# .SUBCKT buf A Z
+# *.PININFO A:I Z:O
+# i1 / inv $PINS A=A Z=inter
+# i2 / inv $PINS A=inter Z=Z
+# .ENDS
+```
+
 ## 从网表读入设计
 
-+ 解析 SPICE 文件
+```spice
+* top.cdl
+
+.SUBCKT inv A Z
+*.PININFO A:I Z:O
+.ENDS
+
+.SUBCKT buf A Z
+*.PININFO A:I Z:O
+i1 / inv $PINS A=A Z=inter
+i2 / inv $PINS A=inter Z=Z
+.ENDS
+```
+
++ 解析 Spice 文件
 
 ```python
 from ichier.parser import fromSpice
@@ -105,6 +135,19 @@ design = fromSpice("top.cdl")
 ```
 
 + 解析 Verilog 文件
+
+```verilog
+// top.v
+
+module inv ( input A, output Z );
+endmodule
+
+module buf ( input A, output Z );
+wire inter;
+inv i1 (.A(A), .Z(inter));
+inv i2 (.A(inter), .Z(Z));
+endmodule
+```
 
 ```python
 from ichier.parser import fromVerilog
@@ -114,6 +157,7 @@ design = fromVerilog("top.v")
 + 也可以直接使用 CLI 工具
 
 ```shell
+python -m ichier parse verilog top.v
 python -m ichier parse spice top.cdl
 ```
 

@@ -1,16 +1,29 @@
-from typing import List
+from typing import List, Sequence, Tuple, Optional
+import re
 
 from .parser import Parser
+from ..escape import EscapeString
 
 __all__ = [
     "parse",
+    "merge",
+    "bitInfoSplit",
 ]
-
-__parser = None
 
 
 def parse(name: str) -> List[str]:
-    global __parser
-    if not isinstance(__parser, Parser):
-        __parser = Parser()
-    return __parser.parse(name)
+    return Parser().parse(name)
+
+
+def merge(names: Sequence[str]) -> str: ...
+
+
+def bitInfoSplit(name: str) -> Tuple[str, Optional[int]]:
+    if isinstance(name, EscapeString):
+        return name, None
+    if m := re.fullmatch(r"(?P<head>[a-zA-Z_]\W*)\[(?P<index>\d+)\]", name):
+        return m.group("head"), int(m.group("index"))
+    elif m := re.fullmatch(r"(?P<head>[a-zA-Z_]\W*)<(?P<index>\d+)>", name):
+        return m.group("head"), int(m.group("index"))
+    else:
+        return name, None

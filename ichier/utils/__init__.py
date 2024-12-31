@@ -1,8 +1,9 @@
 from typing import Dict, Iterable, Optional, Union, overload
 
-from .name_parse import parse as nameparse
+from .name_parse import bitInfoSplit, parse as nameparse
 
 __all__ = [
+    "bitInfoSplit",
     "flattenSequence",
     "parseMemName",
     "expandTermNetPairs",

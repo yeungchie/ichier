@@ -5,7 +5,7 @@ from typing import Literal, Optional, Union
 import os
 
 from . import release
-from . import obj
+from .node import obj
 
 
 def parse_arguments():
@@ -72,131 +72,70 @@ def load_design(
 
 
 def __load_spice(file) -> obj.Design:
-    if load_progress := create_progress():
+    from .parser import fromSpice
+
+    try:
+        from .utils.progress import LoadProgress, LoadTask
         from icutk.string import LineIterator
-        from .parser.spice import fromFile
+
+        load_progress = LoadProgress()
 
         def line_init_cb(lineiter: LineIterator):
-            load_progress.set_total(lineiter.total_lines)
+            id = load_progress.add("Spice")
+            task = load_progress.task(id)
+            task.total = lineiter.total_lines
+            lineiter.task = task  # type: ignore
 
         def line_next_cb(lineiter: LineIterator, data: str):
-            if load_progress.finished:
+            task: LoadTask = lineiter.task  # type: ignore
+            if task.isdone():
                 return
-            if lineiter.line > load_progress.completed:
-                load_progress.set_completed(lineiter.line)
+            if task.current == 0:
+                task.description = f"{"  "*len(lineiter.priority)}{lineiter.path.name}"  # type: ignore
+            task.current = lineiter.line
 
         with load_progress:
-            path = Path(file)
-            design = fromFile(path, cb_init=line_init_cb, cb_next=line_next_cb)
-            load_progress.done()
-            design.name = path.name
-            design.path = path
-    else:
-        from .parser.spice import fromFile
-
-        design = fromFile(file)
+            design = fromSpice(file, cb_init=line_init_cb, cb_next=line_next_cb)
+    except ImportError:
+        design = fromSpice(file)
     return design
 
 
 def __load_verilog(file) -> obj.Design:
-    if load_progress := create_progress():
+    from .parser import fromVerilog
+
+    try:
+        from .utils.progress import LoadProgress, LoadTask
         from icutk.lex import Lexer, LexToken
-        from .parser.verilog import VerilogParser
+
+        load_progress = LoadProgress()
 
         def verilog_input_cb(lexer: Lexer):
             if not isinstance(lexer.lexdata, str):
                 raise ValueError("lexer.lexdata should be a string")
-            load_progress.set_total(lexer.lexdata.count("\n"))
+            id = load_progress.add("Verilog")
+            task = load_progress.task(id)
+            task.total = lexer.lexdata.count("\n") + 1
+            lexer.task = task  # type: ignore
 
         def verilog_token_cb(lexer: Lexer, token: LexToken):
-            if load_progress.finished:
+            task: LoadTask = lexer.task  # type: ignore
+            if task.isdone():
                 return
-            if lexer.lineno > load_progress.completed:
-                load_progress.set_completed(lexer.lineno)
+            if task.current == 0:
+                task.description = f"{"  "*len(lexer.priority)}{lexer.path.name}"  # type: ignore
+            task.current = lexer.lineno
 
         with load_progress:
-            vparser = VerilogParser(
+            design = fromVerilog(
+                file,
                 cb_input=verilog_input_cb,
                 cb_token=verilog_token_cb,
             )
-            path = Path(file)
-            design = vparser.parse(path.read_text())
-            load_progress.done()
-            design.name = path.name
-            design.path = path
-            design.modules.rebuild(mute=True, verilog_style=True)
-    else:
-        from .parser.verilog import fromFile
-
-        design = fromFile(file)
-    return design
-
-
-def create_progress():
-    try:
-        from rich.console import Console
-        from rich.progress import (
-            Progress,
-            SpinnerColumn,
-            TimeElapsedColumn,
-            TextColumn,
-            BarColumn,
-            TaskProgressColumn,
-            TimeRemainingColumn,
-        )
-        from shutil import get_terminal_size
-
-        class LoadProgress:
-            def __init__(self):
-                self.progress = Progress(
-                    SpinnerColumn(),
-                    TextColumn("[progress.description]{task.description}"),
-                    BarColumn(bar_width=get_terminal_size().columns),
-                    TaskProgressColumn(),
-                    TimeRemainingColumn(),
-                    TimeElapsedColumn(),
-                    console=Console(log_time_format="[%T]"),
-                    transient=True,
-                    expand=True,
-                )
-                self.progress.add_task("Parsing")
-                self.task = self.progress.tasks[0]
-
-            @property
-            def finished(self):
-                return self.progress.finished or self.task.finished
-
-            @property
-            def total(self):
-                return self.task.total
-
-            @property
-            def completed(self):
-                return self.task.completed
-
-            def set_total(self, total: int):
-                if self.finished:
-                    return
-                self.progress.update(self.task.id, total=total)
-
-            def set_completed(self, current: int):
-                if self.finished:
-                    return
-                self.progress.update(self.task.id, completed=current)
-
-            def done(self):
-                self.progress.update(self.task.id, completed=self.task.total)
-
-            def __enter__(self):
-                self.progress.__enter__()
-                return self
-
-            def __exit__(self, *args, **kwargs):
-                self.progress.__exit__(*args, **kwargs)
-
-        return LoadProgress()
     except ImportError:
-        return
+        design = fromVerilog(file)
+    design.modules.rebuild(mute=True, verilog_style=True)
+    return design
 
 
 def show_tips(design: obj.Design, used_time: float, lang: Literal["en", "zh"] = "en"):
@@ -215,10 +154,16 @@ def show_tips(design: obj.Design, used_time: float, lang: Literal["en", "zh"] = 
                         """)
     else:
         raise ValueError(f"Unsupported language: {lang}")
+
+    modules_lines = repr(design.modules).splitlines(keepends=True)
+    modules_repr = modules_lines[0]
+    for line in modules_lines[1:]:
+        modules_repr += " " * 36 + f"# {line}"
+
     code = dedent(f"""\
                     design          # {design!r}
                     design.path     # {design.path!r}
-                    design.modules  # {design.modules!r}
+                    design.modules  # {modules_repr}
 
                     for module in design.modules:       # iterate over modules in the design
                         for inst in module.instances:   # iterate over instances in each module

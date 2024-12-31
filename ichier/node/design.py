@@ -1,8 +1,9 @@
+from __future__ import annotations
 from pathlib import Path
-from typing import Any, Dict, Iterable, Iterator, Optional, Literal, Union
+from typing import Any, Dict, Iterable, Iterator, Optional, Literal, Tuple, Union
 from uuid import uuid4
 
-import ichier.obj as icobj
+from . import obj
 from .fig import Fig, FigCollection
 
 __all__ = [
@@ -15,28 +16,33 @@ class Design(Fig):
     def __init__(
         self,
         name: Optional[str] = None,
-        modules: Iterable[icobj.Module] = (),
+        modules: Iterable[obj.Module] = (),
         parameters: Optional[dict] = None,
+        priority: Tuple[int, ...] = (),
     ) -> None:
         if name is None:
             name = str(uuid4())[:8]
         self.name = name
-        self.__modules = icobj.ModuleCollection(self, modules)
-        self.__parameters = icobj.ParameterCollection(parameters)
-        self.__includes = DesignCollection(self)
+        self.__modules = obj.ModuleCollection(self, modules)
+        self.__parameters = obj.ParameterCollection(parameters)
+        self.__priority = priority
         self.__path = None
 
     @property
-    def modules(self) -> icobj.ModuleCollection:
+    def modules(self) -> obj.ModuleCollection:
         return self.__modules
 
     @property
-    def parameters(self) -> icobj.ParameterCollection:
+    def parameters(self) -> obj.ParameterCollection:
         return self.__parameters
 
     @property
-    def includes(self) -> "DesignCollection":
-        return self.__includes
+    def priority(self) -> Tuple[int, ...]:
+        return self.__priority
+
+    @priority.setter
+    def priority(self, value: Tuple[int, ...]) -> None:
+        self.__priority = value
 
     @property
     def path(self) -> Optional[Path]:
@@ -63,6 +69,28 @@ class Design(Fig):
             }
         else:
             raise ValueError("Invalid type")
+
+    def includeOtherDesign(self, other: "Design") -> None:
+        for m in other.modules:
+            if other.path is not None:
+                m.path = other.path
+            if m.name in self.modules:
+                selfm = self.modules[m.name]
+                self_priority = self.priority
+                other_priority = other.priority
+                if selfm.lineno is not None:
+                    self_priority += (selfm.lineno,)
+                if m.lineno is not None:
+                    other_priority += (m.lineno,)
+                if not self_priority < other_priority:
+                    self.modules[m.name] = m
+            else:
+                self.modules.append(m)
+
+    def dumpToSpice(self, *, width_limit: int = 88) -> str:
+        return "\n\n\n".join(
+            m.dumpToSpice(width_limit=width_limit) for m in self.modules
+        )
 
 
 class DesignCollection(FigCollection):

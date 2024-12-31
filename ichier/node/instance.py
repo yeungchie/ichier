@@ -1,10 +1,12 @@
+from __future__ import annotations
 from typing import Any, Dict, Iterator, Optional, Sequence, Tuple, Union
+from textwrap import wrap
 
 from icutk.log import getLogger
 
-import ichier.obj as icobj
+from . import obj
 from .fig import Fig, FigCollection
-from .utils import flattenSequence, expandTermNetPairs
+from ..utils import flattenSequence, expandTermNetPairs
 
 __all__ = [
     "Instance",
@@ -30,16 +32,20 @@ class Instance(Fig):
         if connection is None:
             connection = {}
         self.connection = connection
-        self.__parameters = icobj.ParameterCollection(parameters)
-        self.collection: "icobj.InstanceCollection"
+        self.__parameters = obj.ParameterCollection(parameters)
+        self.collection: obj.InstanceCollection
 
     @property
-    def reference(self) -> "icobj.Reference":
+    def reference(self) -> obj.Reference:
         return self.__reference
 
     @reference.setter
     def reference(self, value: str) -> None:
-        self.__reference = icobj.Reference(value, instance=self)
+        if isinstance(value, obj.BuiltIn):
+            ref_cls = obj.BuiltIn
+        else:
+            ref_cls = obj.Reference
+        self.__reference = ref_cls(value, instance=self)
 
     @property
     def connection(
@@ -78,7 +84,7 @@ class Instance(Fig):
             raise TypeError("connection must be a dict or a sequence")
         self.__connection = connect
 
-    def getAssocNets(self) -> Tuple["icobj.Net", ...]:
+    def getAssocNets(self) -> Tuple[obj.Net, ...]:
         """Get the nets associated with the instance in the module."""
         module = self.getModule()
         if module is None:
@@ -99,7 +105,7 @@ class Instance(Fig):
         return tuple(nets)
 
     @property
-    def parameters(self) -> "icobj.ParameterCollection":
+    def parameters(self) -> obj.ParameterCollection:
         return self.__parameters
 
     def __getitem__(self, key: str) -> Any:
@@ -114,24 +120,26 @@ class Instance(Fig):
     def rebuild(
         self,
         *,
-        reference: Optional["icobj.Module"] = None,
+        reference: Optional[obj.Module] = None,
         mute: bool = False,
         verilog_style: bool = False,
     ) -> None:
         """Rebuild connection"""
         logger = getLogger(__name__, mute=mute)
         if reference is None and self.collection is not None:
-            if isinstance(module := self.collection.parent, icobj.Module):
-                if isinstance(modules := module.collection, icobj.ModuleCollection):
+            if isinstance(module := self.collection.parent, obj.Module):
+                if isinstance(modules := module.collection, obj.ModuleCollection):
                     reference = modules.get(self.reference)
         else:
             module = None
 
-        if not isinstance(reference, icobj.Module):
+        if not isinstance(reference, obj.Module):
             reference = None
 
-        mod_name = module.name if module is not None else "none"
-        ref_name = reference.name if reference is not None else "none"
+        mod_name = "(NONE)" if module is None else module.name
+        ref_name = self.reference.name
+        if reference is None:
+            ref_name += "(MISS)"
         logger.info(
             f"Rebuilding module {mod_name!r} instance '{ref_name}:{self.name}' ..."
         )
@@ -206,6 +214,36 @@ class Instance(Fig):
                 )
         else:
             raise TypeError("connection must be dict, list or tuple.")
+
+    def dumpToSpice(self, *, width_limit: int = 88) -> str:
+        tokens = [self.name]
+        if isinstance(self.reference, obj.BuiltIn):
+            if isinstance(self.connection, dict):
+                for net in self.connection.values():
+                    if not isinstance(net, str):
+                        raise TypeError("net must be a string")
+                    tokens.append(net)
+            else:
+                tokens += self.connection
+            tokens.append(f"$[{self.reference.name}]")
+        else:
+            if isinstance(self.connection, dict):
+                tokens += ["/", self.reference.name, "$PINS"]
+                for term, net in self.connection.items():
+                    if not isinstance(net, str):
+                        raise TypeError("net must be a string")
+                    tokens.append(f"{term!s}={net!s}")
+            else:
+                for net in self.connection:
+                    tokens.append(str(net))
+                tokens += ["/", self.reference.name]
+        return "\n".join(
+            wrap(
+                " ".join(tokens),
+                width=width_limit,
+                subsequent_indent="+ ",
+            )
+        )
 
 
 class InstanceCollection(FigCollection):

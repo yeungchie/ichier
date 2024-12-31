@@ -1,7 +1,8 @@
-from typing import Any, Iterable, Iterator, Optional, Union
+from __future__ import annotations
+from typing import Any, Iterable, Iterator, Literal, Optional, Union
 import re
 
-import ichier.obj as icobj
+from . import obj
 
 __all__ = [
     "Fig",
@@ -54,25 +55,50 @@ class Fig:
             raise TypeError("value must be a FigCollection or None")
         self.__collection = value
 
-    def getModule(self) -> Optional["icobj.Module"]:
+    def getModule(self) -> Optional[obj.Module]:
         collection = self.collection
         if collection is None:
             return
-        if isinstance(collection.parent, icobj.Module):
+        if isinstance(collection.parent, obj.Module):
             return collection.parent
         else:
             return None
 
-    def getDesign(self) -> Optional["icobj.Design"]:
+    def getDesign(self) -> Optional[obj.Design]:
         collection = self.collection
         if collection is None:
             return
-        if isinstance(collection.parent, icobj.Module):
+        if isinstance(collection.parent, obj.Module):
             return collection.parent.getDesign()
-        elif isinstance(collection.parent, icobj.Design):
+        elif isinstance(collection.parent, obj.Design):
             return collection.parent
         else:
             return None
+
+    def dump(
+        self,
+        format: Literal["spice", "verilog"] = "spice",
+        *,
+        width_limit: int = 88,
+    ) -> str:
+        if format == "spice":
+            return self.dumpToSpice(width_limit=width_limit)
+        elif format == "verilog":
+            return self.dumpToVerilog(width_limit=width_limit)
+        else:
+            raise ValueError(f"Unsupported format {format!r}")
+
+    def dumpToSpice(self, *args, **kwargs) -> str:
+        raise NotImplementedError(
+            f"Dump to spice is disabled for the {self.__class__.__name__!r}."
+            " Please try to dump the parent node instead."
+        )
+
+    def dumpToVerilog(self, *args, **kwargs) -> str:
+        raise NotImplementedError(
+            f"Dump to verilog is disabled for the {self.__class__.__name__!r}."
+            " Please try to dump the parent node instead."
+        )
 
 
 class Collection(dict):
@@ -172,20 +198,28 @@ class Collection(dict):
 class FigCollection(Collection):
     def __init__(
         self,
-        parent: Union["icobj.Module", "icobj.Design"],
+        parent: Union[obj.Module, obj.Design],
         figs: Iterable[Fig] = (),
     ) -> None:
+        if not isinstance(parent, (obj.Module, obj.Design)):
+            raise TypeError(f"parent must be a Module or Design - {parent!r}")
+        if isinstance(figs, str):
+            raise TypeError(f"figs must be an iterable of Fig - {figs!r}")
         super().__init__()
-        if not isinstance(parent, (icobj.Module, icobj.Design)):
-            raise TypeError("parent must be a Module or Design")
         self.__parent = parent
         self.extend(figs)
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}: {len(self)} figs"
+        s = f"{self.__class__.__name__}: {len(self)} figs\n"
+        if len(self) <= 6:
+            s += repr(tuple(self.values()))
+        else:
+            queue = [repr(x) for x in self.values()]
+            s += "(" + ",\n ".join(queue[:4] + ["..."] + queue[-2:]) + ")"
+        return s
 
     @property
-    def parent(self) -> Union["icobj.Module", "icobj.Design"]:
+    def parent(self) -> Union[obj.Module, obj.Design]:
         return self.__parent
 
     @property
@@ -233,3 +267,6 @@ class FigCollection(Collection):
         for v in self.values():
             v._setCollection(None)
         return super().clear()
+
+    def dump(self, *args, **kwargs) -> str:
+        return "\n".join(fig.dump(*args, **kwargs) for fig in self)

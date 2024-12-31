@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import Any, Dict, Iterator, Optional, Literal, Tuple, Union
 
 from .fig import Fig, FigCollection
@@ -22,7 +23,7 @@ class Terminal(Fig):
         return f"Terminal({self.name!r}, {self.direction!r})"
 
     @property
-    def direction(self) -> Literal["input", "output", "inout"]:
+    def direction(self) -> str:
         return self.__direction
 
     @direction.setter

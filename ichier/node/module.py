@@ -1,3 +1,5 @@
+from __future__ import annotations
+from pathlib import Path
 from typing import (
     Any,
     DefaultDict,
@@ -10,16 +12,18 @@ from typing import (
     Union,
 )
 from collections import defaultdict
+from textwrap import wrap
 
 from icutk.log import getLogger
 
-import ichier.obj as icobj
+from . import obj
 from .fig import Fig, FigCollection
 
 __all__ = [
     "Module",
     "ModuleCollection",
     "Reference",
+    "BuiltIn",
 ]
 
 
@@ -27,32 +31,52 @@ class Module(Fig):
     def __init__(
         self,
         name: str,
-        terminals: Iterable["icobj.Terminal"] = (),
-        nets: Iterable["icobj.Net"] = (),
-        instances: Iterable["icobj.Instance"] = (),
+        terminals: Iterable[obj.Terminal] = (),
+        nets: Iterable[obj.Net] = (),
+        instances: Iterable[obj.Instance] = (),
         parameters: Optional[Dict[str, Any]] = None,
     ) -> None:
         self.name = name
-        self.__terminals = icobj.TerminalCollection(self, terminals)
-        self.__nets = icobj.NetCollection(self, nets)
-        self.__instances = icobj.InstanceCollection(self, instances)
-        self.__parameters = icobj.ParameterCollection(parameters)
+        self.__terminals = obj.TerminalCollection(self, terminals)
+        self.__nets = obj.NetCollection(self, nets)
+        self.__instances = obj.InstanceCollection(self, instances)
+        self.__parameters = obj.ParameterCollection(parameters)
+        self.__lienno = None
+        self.__path = None
 
     @property
-    def terminals(self) -> "icobj.TerminalCollection":
+    def terminals(self) -> obj.TerminalCollection:
         return self.__terminals
 
     @property
-    def instances(self) -> "icobj.InstanceCollection":
+    def instances(self) -> obj.InstanceCollection:
         return self.__instances
 
     @property
-    def nets(self) -> "icobj.NetCollection":
+    def nets(self) -> obj.NetCollection:
         return self.__nets
 
     @property
-    def parameters(self) -> "icobj.ParameterCollection":
+    def parameters(self) -> obj.ParameterCollection:
         return self.__parameters
+
+    @property
+    def lineno(self) -> Optional[int]:
+        return self.__lienno
+
+    @lineno.setter
+    def lineno(self, value: Optional[int]) -> None:
+        self.__lienno = value
+
+    @property
+    def path(self) -> Optional[Path]:
+        return self.__path
+
+    @path.setter
+    def path(self, value: Optional[Union[str, Path]]) -> None:
+        if value is not None:
+            value = Path(value)
+        self.__path = value
 
     def summary(
         self,
@@ -93,8 +117,8 @@ class Module(Fig):
     def makeModule(
         self,
         name: str,
-        instances: Iterable[Union[str, "icobj.Instance"]],
-        to_design: Optional["icobj.Design"] = None,
+        instances: Iterable[Union[str, obj.Instance]],
+        to_design: Optional[obj.Design] = None,
     ) -> "Module":
         """Create a new module with the given instances.
 
@@ -109,7 +133,7 @@ class Module(Fig):
         The new module.
         """
         if to_design is not None:
-            if not isinstance(to_design, icobj.Design):
+            if not isinstance(to_design, obj.Design):
                 raise TypeError("to_design must be a Design")
             design = to_design
         else:
@@ -119,8 +143,8 @@ class Module(Fig):
                 f"Module {name!r} already exists in design {design.name!r}"
             )
 
-        insts: Set[icobj.Instance] = set()
-        nets: Set[icobj.Net] = set()
+        insts: Set[obj.Instance] = set()
+        nets: Set[obj.Net] = set()
         net_dirs: DefaultDict[str, set] = defaultdict(set)
 
         for i in instances:
@@ -164,7 +188,7 @@ class Module(Fig):
                 dir = "inout"  # inout 其次
             else:
                 dir = "input"  # input 最低
-            terms.append(icobj.Terminal(name=tname, direction=dir))
+            terms.append(obj.Terminal(name=tname, direction=dir))
 
         module = Module(
             name=name,
@@ -177,6 +201,44 @@ class Module(Fig):
 
         module.rebuild()
         return module
+
+    def dumpToSpice(self, *, width_limit: int = 88) -> str:
+        # head
+        head = "\n".join(
+            wrap(
+                " ".join([".SUBCKT", self.name, *[t.name for t in self.terminals]]),
+                width=width_limit,
+                subsequent_indent="+ ",
+            )
+        )
+
+        # pininfo items
+        pin_pairs = []
+        for t in self.terminals:
+            pair = [t.name]
+            if t.direction == "input":
+                pair.append("I")
+            elif t.direction == "output":
+                pair.append("O")
+            elif t.direction == "inout":
+                pair.append("B")
+            pin_pairs.append(":".join(pair))
+
+        pininfo = "\n".join(
+            wrap(
+                " ".join(pin_pairs),
+                width=width_limit,
+                initial_indent="*.PININFO ",
+                subsequent_indent="*.PININFO ",
+            )
+        )
+
+        # instance items
+        insts = "\n".join(
+            i.dumpToSpice(width_limit=width_limit) for i in self.instances
+        )
+
+        return "\n".join(x for x in [head, pininfo, insts, ".ENDS"] if x != "")
 
 
 class ModuleCollection(FigCollection):
@@ -198,7 +260,7 @@ class ModuleCollection(FigCollection):
     ) -> Dict[str, Any]:
         return {
             "total": len(self),
-            "list": [module.summary(info_type) for module in self.figs],
+            "list": [module.summary(info_type) for module in self],
         }
 
     def rebuild(
@@ -214,17 +276,17 @@ class ModuleCollection(FigCollection):
 
 
 class Reference(str):
-    def __new__(cls, name: str, instance: "icobj.Instance"):
+    def __new__(cls, name: str, instance: Optional[obj.Instance] = None):
         return super().__new__(cls, name)
 
-    def __init__(self, name: str, instance: "icobj.Instance") -> None:
-        if not isinstance(instance, icobj.Instance):
+    def __init__(self, name: str, instance: Optional[obj.Instance] = None) -> None:
+        if instance is not None and not isinstance(instance, obj.Instance):
             raise TypeError("instance must be an Instance")
         self.__name = str(self)
         self.__instance = instance
 
     def __repr__(self) -> str:
-        return f"Reference({super().__repr__()})"
+        return f"{self.type}({super().__repr__()})"
 
     def __str__(self) -> str:
         return super().__str__()
@@ -238,11 +300,18 @@ class Reference(str):
         return self.__name
 
     @property
-    def instance(self) -> "icobj.Instance":
+    def instance(self) -> Optional[obj.Instance]:
         return self.__instance
 
     def getMaster(self) -> Optional[Module]:
+        if self.instance is None:
+            return
         design = self.instance.getDesign()
         if design is None:
             return
         return design.modules.get(self.name)
+
+
+class BuiltIn(Reference):
+    def getMaster(self) -> None:
+        raise NotImplementedError("Built-in devices do not have master")

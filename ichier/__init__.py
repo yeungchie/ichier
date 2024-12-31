@@ -7,7 +7,7 @@ __version__ = release.version
 __url__ = release.url
 __copyright__ = release.copyright
 
-from .obj import Design, Module, Instance, Net, Terminal
+from .node.obj import Design, Module, Instance, Net, Terminal
 from .parser import fromSpice, fromVerilog
 
 __all__ = [

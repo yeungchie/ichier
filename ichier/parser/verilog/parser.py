@@ -1,6 +1,6 @@
-from typing import Callable, Dict, List, Literal, Optional, Union
-from dataclasses import dataclass
 from pathlib import Path
+from typing import Callable, Dict, List, Literal, Optional, Tuple, Union
+from dataclasses import dataclass
 
 from ply.yacc import yacc
 
@@ -10,27 +10,6 @@ from ichier import Design, Module, Instance, Terminal, Net
 __all__ = [
     "VerilogParser",
 ]
-
-
-class Include:
-    def __init__(self, path: Union[str, Path]) -> None:
-        self.path = path
-
-    @property
-    def path(self) -> Path:
-        return self.__path
-
-    @path.setter
-    def path(self, value: Union[str, Path]) -> None:
-        self.__path = Path(value)
-
-    def __repr__(self) -> str:
-        return f"Include({self.path})"
-
-    def read(self) -> str:
-        return self.path.read_text()
-
-    def parse(self) -> "Design": ...
 
 
 @dataclass
@@ -89,15 +68,8 @@ class VerilogParser:
     def p_design_item(self, p):  # 设计项
         """
         design_item  :  module
-                     |  include
         """
         p[0] = p[1]
-
-    def p_include(self, p):  # 包含外部网表文件
-        """
-        include  :  INCLUDE
-        """
-        p[0] = Include(path=p[1])
 
     def p_module(self, p):  # 模块定义
         """
@@ -160,6 +132,7 @@ class VerilogParser:
             instances=insts.values(),
             parameters=params,
         )
+        p[0].lineno = p[1]["lineno"]
 
     def p_module_item_list(self, p):  # 模块项列表
         """
@@ -326,14 +299,21 @@ class VerilogParser:
             step = -1
         p[0] = range(start, end + step, step)
 
+    def p_module_id(self, p):  # 模块标识符，方便记录行号
+        """
+        module_id  :  MODULE
+        """
+        p[0] = p.lexer.lexer.lineno
+
     def p_module_head(self, p):  # 模块声明头部
         """
-        module_head  :  MODULE  id  '('  port_list  ')'  ';'
-                     |  MODULE  id  ';'
+        module_head  :  module_id  id  '('  port_list  ')'  ';'
+                     |  module_id  id  ';'
         """
         data = {
             "module_name": p[2],
             "port_order": [],
+            "lineno": p[1],
         }
         if len(p) == 7:
             data["port_order"] = p[4]
@@ -436,13 +416,19 @@ class VerilogParser:
         *,
         cb_input: Optional[Callable] = None,
         cb_token: Optional[Callable] = None,
+        priority: Tuple[int, ...] = (),
+        path: Optional[Union[str, Path]] = None,
     ):
         self.lexer = VerilogLexer(
             cb_input=cb_input,
             cb_token=cb_token,
+            priority=priority,
+            path=path,
         )
         self.tokens = self.lexer.tokens
         self.parser = yacc(module=self, debug=False, write_tables=False)
 
     def parse(self, text) -> Design:
-        return self.parser.parse(text, lexer=self.lexer)
+        design = self.parser.parse(text, lexer=self.lexer)
+        design.priority = self.lexer.lexer.priority
+        return design

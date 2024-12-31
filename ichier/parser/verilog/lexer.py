@@ -1,4 +1,6 @@
-from icutk.lex import MetaLexer, LexToken
+from pathlib import Path
+from typing import Optional, Tuple, Union
+from icutk.lex import BaseLexer, LexToken
 from ichier.utils.escape import EscapeString
 
 __all__ = [
@@ -6,7 +8,7 @@ __all__ = [
 ]
 
 
-class VerilogLexer(MetaLexer):
+class VerilogLexer(BaseLexer):
     reserved = {
         "module": "MODULE",
         "input": "INPUT",
@@ -17,22 +19,29 @@ class VerilogLexer(MetaLexer):
         "specparam": "SPECPARAM",
         "endspecify": "ENDSPECIFY",
         "endmodule": "ENDMODULE",
-        "`include": "INCLUDE",
     }
 
-    tokens = (
-        "ID",  # abc
+    tokens = [
         "ESC_ID",  # \abc
-        "FLOAT",  # 1.23
-        "INT",  # 10
         "STRING",  # "abc"
-    ) + tuple(reserved.values())
+        *BaseLexer.tokens,
+        *reserved.values(),
+    ]
 
-    literals = "()[]{}=;,:."
+    def __init__(
+        self,
+        *args,
+        priority: Tuple[int, ...] = (),
+        path: Optional[Union[str, Path]] = None,
+        **kwargs,
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self.lexer.priority = priority
+        self.lexer.path = path
 
     def t_ESC_ID(self, t: LexToken):
         r"\\\S+"
-        t.value = EscapeString(t.value[1:])
+        t.value = EscapeString(t.value)
         return t
 
     def t_ID(self, t: LexToken):
@@ -57,24 +66,6 @@ class VerilogLexer(MetaLexer):
 
     def t_pre_proc(self, t: LexToken):
         r"`\w.*"
-        proc, _, value = t.value.partition(" ")
-        t_type = self.reserved.get(proc)
-        if t_type is None:
-            return
-        t.type = t_type
-        if t.type == "INCLUDE":
-            value = value.strip()
-            if value.startswith('"') and value.endswith('"'):
-                t.value = value[1:-1]
-            else:
-                raise ValueError(f"Invalid include value: {t.value!r}")
-        else:
-            return
-        return t
-
-    def t_newline(self, t: LexToken):
-        r"\n+"
-        t.lexer.lineno += t.value.count("\n")
         pass
 
     def t_comment_line(self, t: LexToken):
