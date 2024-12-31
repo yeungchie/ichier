@@ -1,3 +1,5 @@
+from __future__ import annotations
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple, Union
 import re
@@ -33,41 +35,68 @@ class SpiceIncludeError(SpiceFormatError):
 
 def fromFile(
     file: Union[str, Path],
+    *,
+    rebuild: bool = False,
     cb_init: Optional[Callable] = None,
     cb_next: Optional[Callable] = None,
 ) -> ichier.Design:
     path = Path(file)
-    design = fromString(
-        string=path.read_text("utf-8"),
+    return fromString(
+        path.read_text(encoding="utf-8"),
+        rebuild=rebuild,
         cb_init=cb_init,
         cb_next=cb_next,
         path=path,
     )
-    design.name = path.name
-    design.path = path
-    for m in design.modules:
-        if m.path is None:
-            m.path = path
-    return design
 
 
 def fromString(
     string: str,
+    *,
+    rebuild: bool = False,
     cb_init: Optional[Callable] = None,
     cb_next: Optional[Callable] = None,
     path: Optional[Path] = None,
 ) -> ichier.Design:
-    includes: List[ichier.Design] = []
-    design = __fromString(
-        string,
-        cb_init=cb_init,
-        cb_next=cb_next,
-        includes=includes,
-        path=path,
-    )
-    for d in includes:
+    args_array = []
+    for item in parseHier(string):
+        args_array.append((item, cb_init, cb_next, path))
+    designs = [__worker(*args) for args in args_array]
+    design = ichier.Design()
+    for d in designs:
         design.includeOtherDesign(d)
+    if rebuild:
+        design.modules.rebuild()
+    if path is not None:
+        path = Path(path)
+        design.path = path
+        design.name = path.name
+        for m in design.modules:
+            if m.path is None:
+                m.path = path
     return design
+
+
+def __worker(
+    item: Union[NetlistString, NetlistFile],
+    cb_init: Optional[Callable] = None,
+    cb_next: Optional[Callable] = None,
+    path: Optional[Union[str, Path]] = None,
+) -> ichier.Design:
+    if isinstance(item, NetlistString):
+        return __fromString(
+            item.string,
+            cb_init=cb_init,
+            cb_next=cb_next,
+            path=path,
+        )
+    elif isinstance(item, NetlistFile):
+        return __fromFile(
+            item.path,
+            cb_init=cb_init,
+            cb_next=cb_next,
+            priority=item.priority,
+        )
 
 
 def __fromFile(file: Union[str, Path], **kwargs) -> ichier.Design:
@@ -81,30 +110,74 @@ def __fromFile(file: Union[str, Path], **kwargs) -> ichier.Design:
 
 def __fromString(
     string: str,
+    *,
     cb_init: Optional[Callable] = None,
     cb_next: Optional[Callable] = None,
     priority: Tuple[int, ...] = (),
-    includes: Optional[list] = None,
-    path: Optional[Path] = None,
+    path: Optional[Union[str, Path]] = None,
 ) -> ichier.Design:
     lineiter = LineIterator(
         data=string.splitlines(),
         cb_init=cb_init,
         cb_next=cb_next,
     )
-    lineiter.path = path  # type: ignore
+    lineiter.path = Path(path)  # type: ignore
     lineiter.priority = priority  # type: ignore
     return __parse(
         lineiter=lineiter,
         priority=priority,
-        includes=includes,
     )
+
+
+def removeComments(string: str) -> str:
+    return re.sub(r"^(\*|\$)", "", string, flags=re.MULTILINE)
+
+
+def parseHier(
+    string: str,
+    *,
+    queue: Optional[list] = None,
+    priority: tuple = (),
+):
+    if queue is None:
+        queue = []
+    if priority is None:
+        priority = ()
+    if not priority:
+        queue.append(NetlistString(string=string))
+    for i, line in enumerate(removeComments(string).splitlines()):
+        if line.upper().startswith(".INCLUDE"):
+            if m := re.fullmatch(r"\.INCLUDE\s+\"?([^\"\s]*)\"?", line, re.IGNORECASE):
+                file_priority = priority + (i + 1,)
+                path = Path(m.group(1))
+                queue.append(NetlistFile(priority=file_priority, path=path))
+                parseHier(
+                    string=path.read_text(encoding="utf-8"),
+                    queue=queue,
+                    priority=file_priority,
+                )
+            else:
+                raise SpiceIncludeError(
+                    f"Invalid include statement at line {i+1}:\n>>> {line}"
+                )
+    return queue
+
+
+@dataclass
+class NetlistString:
+    string: str = field(default_factory=str, repr=False)
+
+
+@dataclass
+class NetlistFile:
+    priority: tuple
+    path: Path
 
 
 def __parse(
     lineiter: LineIterator,
     priority: Tuple[int, ...] = (),
-    includes: Optional[list] = None,
+    # includes: Optional[list] = None,
 ) -> ichier.Design:
     design = ichier.Design(priority=priority)
     for line in lineiter:
@@ -117,20 +190,7 @@ def __parse(
             module.lineno = lineno
             design.modules.append(module)
         elif line.upper().startswith(".INCLUDE"):
-            if includes is None:
-                continue
-            if m := re.fullmatch(r"\.INCLUDE\s+\"?([^\"\s]*)\"?", line, re.IGNORECASE):
-                d = __fromFile(
-                    m.group(1),
-                    priority=priority + (lineno,),
-                    cb_init=lineiter.cb_init,
-                    cb_next=lineiter.cb_next,
-                )
-                includes.append(d)
-            else:
-                raise SpiceIncludeError(
-                    f"Invalid include statement at line {lineiter.line}:\n>>> {line}"
-                )
+            continue
     return design
 
 

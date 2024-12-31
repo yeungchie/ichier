@@ -1,3 +1,4 @@
+from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Callable, Optional, Tuple, Union
 from pathlib import Path
@@ -17,20 +18,13 @@ def fromFile(
     cb_token: Optional[Callable] = None,
 ) -> Design:
     path = Path(file)
-    with open(path, "rt", encoding="utf-8") as f:
-        design = fromString(
-            f.read(),
-            rebuild=rebuild,
-            cb_input=cb_input,
-            cb_token=cb_token,
-            path=path,
-        )
-    design.name = path.name
-    design.path = path
-    for m in design.modules:
-        if m.path is None:
-            m.path = path
-    return design
+    return fromString(
+        path.read_text(encoding="utf-8"),
+        rebuild=rebuild,
+        cb_input=cb_input,
+        cb_token=cb_token,
+        path=path,
+    )
 
 
 def fromString(
@@ -41,39 +35,50 @@ def fromString(
     cb_token: Optional[Callable] = None,
     path: Optional[Union[str, Path]] = None,
 ) -> Design:
-    queue = []
-    designs = []
-    for item in parseHier(string, queue=queue):
-        if isinstance(item, NetlistString):
-            d = __fromString(
-                item.string,
-                rebuild=False,
-                cb_input=cb_input,
-                cb_token=cb_token,
-                path=path,
-            )
-        elif isinstance(item, NetlistFile):
-            d = __fromFile(
-                item.path,
-                rebuild=False,
-                cb_input=cb_input,
-                cb_token=cb_token,
-                priority=item.priority,
-            )
-            d.priority = item.priority
-        designs.append(d)
+    args_array = []
+    for item in parseHier(string):
+        args_array.append((item, cb_input, cb_token, path))
+    designs = [__worker(*args) for args in args_array]
     design = Design()
     for d in designs:
         design.includeOtherDesign(d)
     if rebuild:
         design.modules.rebuild(verilog_style=True)
+    if path is not None:
+        path = Path(path)
+        design.path = path
+        design.name = path.name
+        for m in design.modules:
+            if m.path is None:
+                m.path = path
     return design
+
+
+def __worker(
+    item: Union[NetlistString, NetlistFile],
+    cb_input: Optional[Callable] = None,
+    cb_token: Optional[Callable] = None,
+    path: Optional[Union[str, Path]] = None,
+) -> Design:
+    if isinstance(item, NetlistString):
+        return __fromString(
+            item.string,
+            cb_input=cb_input,
+            cb_token=cb_token,
+            path=path,
+        )
+    elif isinstance(item, NetlistFile):
+        return __fromFile(
+            item.path,
+            cb_input=cb_input,
+            cb_token=cb_token,
+            priority=item.priority,
+        )
 
 
 def __fromFile(
     file: Union[str, Path],
     *,
-    rebuild: bool = False,
     cb_input: Optional[Callable] = None,
     cb_token: Optional[Callable] = None,
     priority: Tuple[int, ...] = (),
@@ -82,7 +87,6 @@ def __fromFile(
     with open(path, "rt", encoding="utf-8") as f:
         design = __fromString(
             string=f.read(),
-            rebuild=rebuild,
             cb_input=cb_input,
             cb_token=cb_token,
             priority=priority,
@@ -96,7 +100,6 @@ def __fromFile(
 def __fromString(
     string: str,
     *,
-    rebuild: bool = False,
     cb_input: Optional[Callable] = None,
     cb_token: Optional[Callable] = None,
     priority: Tuple[int, ...] = (),
@@ -108,11 +111,7 @@ def __fromString(
         priority=priority,
         path=path,
     )
-    design = vparser.parse(string)
-    if rebuild:
-        for m in design.modules:
-            m.rebuild(verilog_style=True)
-    return design
+    return vparser.parse(string)
 
 
 def removeComments(string: str) -> str:
@@ -140,12 +139,7 @@ def parseHier(
         if m := re.fullmatch(r'`include "([^"\s]+)"', line):
             file_priority = priority + (i + 1,)
             path = Path(m.group(1))
-            queue.append(
-                NetlistFile(
-                    priority=file_priority,
-                    path=path,
-                )
-            )
+            queue.append(NetlistFile(priority=file_priority, path=path))
             parseHier(
                 string=path.read_text(encoding="utf-8"),
                 queue=queue,
