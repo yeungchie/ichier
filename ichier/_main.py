@@ -91,7 +91,7 @@ def __load_spice(file) -> obj.Design:
             if task.isdone():
                 return
             if task.current == 0:
-                task.description = f"{"  "*len(lineiter.priority)}{lineiter.path.name}"  # type: ignore
+                task.description = f"{'  '*len(lineiter.priority)}{lineiter.path.name}"  # type: ignore
             task.current = lineiter.line
 
         with load_progress:
@@ -123,7 +123,7 @@ def __load_verilog(file) -> obj.Design:
             if task.isdone():
                 return
             if task.current == 0:
-                task.description = f"{"  "*len(lexer.priority)}{lexer.path.name}"  # type: ignore
+                task.description = f"{'  '*len(lexer.priority)}{lexer.path.name}"  # type: ignore
             task.current = lexer.lineno
 
         with load_progress:
