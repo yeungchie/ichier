@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple, Union
 import re
+import os
 
 from icutk.string import LineIterator
 
@@ -163,7 +164,7 @@ def parseHier(
         if line.upper().startswith(".INCLUDE"):
             if m := re.match(r"\.INCLUDE\s+\"?([^\"\s]*)\"?", line, re.IGNORECASE):
                 file_priority = priority + (i + 1,)
-                path = Path(m.group(1))
+                path = Path(os.path.expandvars(m.group(1))).expanduser()
                 queue.append(NetlistFile(priority=file_priority, path=path))
                 parseHier(
                     string=path.read_text(encoding="utf-8"),
