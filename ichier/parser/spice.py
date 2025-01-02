@@ -161,7 +161,7 @@ def parseHier(
         queue.append(NetlistString(string=string))
     for i, line in enumerate(removeComments(string).splitlines()):
         if line.upper().startswith(".INCLUDE"):
-            if m := re.fullmatch(r"\.INCLUDE\s+\"?([^\"\s]*)\"?", line, re.IGNORECASE):
+            if m := re.match(r"\.INCLUDE\s+\"?([^\"\s]*)\"?", line, re.IGNORECASE):
                 file_priority = priority + (i + 1,)
                 path = Path(m.group(1))
                 queue.append(NetlistFile(priority=file_priority, path=path))
