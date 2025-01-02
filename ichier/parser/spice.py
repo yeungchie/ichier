@@ -136,7 +136,15 @@ def __fromString(
 
 
 def removeComments(string: str) -> str:
-    return re.sub(r"^(\*|\$)", "", string, flags=re.MULTILINE)
+    lines = []
+    for line in string.splitlines(keepends=True):
+        if line.startswith("*"):
+            lines.append("\n")
+        elif line.startswith("$"):
+            lines.append("\n")
+        else:
+            lines.append(line)
+    return "".join(lines)
 
 
 def parseHier(
