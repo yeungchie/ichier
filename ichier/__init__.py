@@ -8,7 +8,7 @@ __url__ = release.url
 __copyright__ = release.copyright
 
 from .node.obj import Design, Module, Instance, Net, Terminal
-from .parser import fromSpice, fromVerilog
+from .parser import fromVerilog, fromVerilogCode, fromSpice, fromSpiceCode
 
 __all__ = [
     "Design",
@@ -16,6 +16,8 @@ __all__ = [
     "Instance",
     "Net",
     "Terminal",
-    "fromSpice",
     "fromVerilog",
+    "fromVerilogCode",
+    "fromSpice",
+    "fromSpiceCode",
 ]

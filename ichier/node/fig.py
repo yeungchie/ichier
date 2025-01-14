@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import Any, Iterable, Iterator, Literal, Optional, Union
+from uuid import uuid4, UUID
 import re
 
 from . import obj
@@ -12,10 +13,11 @@ __all__ = [
 
 
 class Fig:
-    __name: str = ""
+    __name: Optional[str] = None
     __collection: Optional["FigCollection"] = None
 
-    def __init__(self, name: str = "") -> None:
+    def __init__(self, name: Optional[str] = None) -> None:
+        self.__uuid = uuid4()
         self.name = name
 
     def __repr__(self) -> str:
@@ -29,15 +31,24 @@ class Fig:
         return self.__class__.__name__
 
     @property
+    def uuid(self) -> UUID:
+        return self.__uuid
+
+    @property
     def name(self) -> str:
+        if self.__name is None:
+            self.__name = f"{self.type}_{self.uuid.hex:.8}"
         return self.__name
 
     @name.setter
-    def name(self, value: str) -> None:
-        if not isinstance(value, str):
-            raise TypeError("name must be a string")
+    def name(self, value: Optional[str]) -> None:
         if value == self.name:
             return
+        if value is None:
+            self.__name = None
+            return
+        if not isinstance(value, str):
+            raise TypeError(f"name must be a string - {value!r}")
         old = self.name
         self.__name = value
         if self.collection is not None:
@@ -52,7 +63,7 @@ class Fig:
 
     def _setCollection(self, value: Optional["FigCollection"]) -> None:
         if value is not None and not isinstance(value, FigCollection):
-            raise TypeError("value must be a FigCollection or None")
+            raise TypeError(f"value must be a FigCollection or None - {value!r}")
         self.__collection = value
 
     def getModule(self) -> Optional[obj.Module]:
@@ -114,7 +125,7 @@ class Collection(dict):
 
     def _keyChecker(self, key: str) -> None:
         if not isinstance(key, str):
-            raise KeyError(f"key must be a string - {repr(key)}")
+            raise KeyError(f"key must be a string - {key!r}")
 
     def _valueChecker(self, value: Any) -> None:
         pass
@@ -133,7 +144,7 @@ class Collection(dict):
         elif isinstance(key, str):
             pass
         else:
-            raise KeyError("key must be an integer or a string")
+            raise KeyError(f"key must be an integer or a string - {key!r}")
         return super().__getitem__(key)
 
     def update(self, *args, **kwargs) -> None:
@@ -152,15 +163,15 @@ class Collection(dict):
 
     def remove(self, key: str) -> None:
         if key not in self:
-            raise KeyError(f"{key} not found")
+            raise KeyError(f"key not found - {key!r}")
         self.__delitem__(key)
 
     def setdefault(self, *args, **kwargs) -> None:
-        raise NotImplementedError("setdefault() is disabled")
+        raise NotImplementedError(f"setdefault() is disabled for class {self.type!r}")
 
     def __or__(self, other: "Collection") -> "Collection":
         if not isinstance(other, Collection):
-            raise TypeError("other must be a Collection")
+            raise TypeError(f"other must be a Collection - {other!r}")
         result = Collection()
         result.update(self)
         result.update(other)
@@ -168,7 +179,7 @@ class Collection(dict):
 
     def __ror__(self, other: "Collection") -> "Collection":
         if not isinstance(other, Collection):
-            raise TypeError("other must be a Collection")
+            raise TypeError(f"other must be a Collection - {other!r}")
         result = Collection()
         result.update(other)
         result.update(self)
@@ -232,7 +243,7 @@ class FigCollection(Collection):
 
     def _valueChecker(self, value: Fig) -> None:
         if not isinstance(value, Fig):
-            raise TypeError("value must be a Fig")
+            raise TypeError(f"value must be a Fig object - {value!r}")
 
     def __setitem__(self, key: str, fig: Fig) -> None:
         self._keyChecker(key)
@@ -244,17 +255,17 @@ class FigCollection(Collection):
 
     def __delitem__(self, key: str) -> None:
         if key not in self:
-            raise KeyError(f"{key} not found")
+            raise KeyError(f"key not found - {key!r}")
         self[key]._setCollection(None)
         super().__delitem__(key)
 
     def rename(self, src: str, dst: str) -> None:
         if src not in self:
-            raise KeyError(f"{src} not found")
+            raise KeyError(f"src not found - {src!r}")
         if src == dst:
             return
         if dst in self:
-            raise KeyError(f"{dst} already exists")
+            raise KeyError(f"dst already exists - {dst!r}")
         fig: Fig = self.pop(src)
         if fig.name != dst:
             fig._setName(dst)

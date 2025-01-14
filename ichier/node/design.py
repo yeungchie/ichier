@@ -1,7 +1,6 @@
 from __future__ import annotations
 from pathlib import Path
 from typing import Any, Dict, Iterable, Iterator, Optional, Literal, Tuple, Union
-from uuid import uuid4
 
 from . import obj
 from .fig import Fig, FigCollection
@@ -20,9 +19,7 @@ class Design(Fig):
         parameters: Optional[dict] = None,
         priority: Tuple[int, ...] = (),
     ) -> None:
-        if name is None:
-            name = str(uuid4())[:8]
-        self.name = name
+        super().__init__(name)
         self.__modules = obj.ModuleCollection(self, modules)
         self.__parameters = obj.ParameterCollection(parameters)
         self.__priority = priority

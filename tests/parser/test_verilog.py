@@ -1,6 +1,6 @@
 from textwrap import dedent
 
-from ichier.parser.verilog import fromString
+from ichier.parser.verilog import fromCode
 
 
 class TestSpiceParser:
@@ -17,7 +17,7 @@ class TestSpiceParser:
         endmodule
         """
         code = dedent(code)
-        design = fromString(code)
+        design = fromCode(code)
         buf = design.modules["buf"]
         assert buf.terminals["in[0]"].direction == "input"
         assert buf.terminals["in[1]"].direction == "input"
@@ -39,7 +39,7 @@ class TestSpiceParser:
         endmodule
         """
         code = dedent(code)
-        design = fromString(code)
+        design = fromCode(code)
         top = design.modules["top"]
         top.rebuild(mute=True, verilog_style=True)
         connection = top.instances["c0"].connection

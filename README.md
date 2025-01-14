@@ -54,8 +54,8 @@ design = Design(
             ],
             instances=[
                 Instance(
-                    name="i1",
                     reference="inv",
+                    name="i1",
                     connection={
                         "A": "A",
                         "Z": "inter",
@@ -63,8 +63,8 @@ design = Design(
                     parameters={"size": "x2"},
                 ),
                 Instance(
-                    name="i2",
                     reference="inv",
+                    name="i2",
                     connection={
                         "A": "inter",
                         "Z": "Z",
@@ -81,18 +81,18 @@ design = Design(
 
 ```python
 design.modules.figs
-# (Module('inv'), Module('buf'))
+# => (Module('inv'), Module('buf'))
 
 buf = design.modules["buf"]
 
 buf.terminals.figs
-# (Terminal('A', 'input'), Terminal('Z', 'output'))
+# => (Terminal('A', 'input'), Terminal('Z', 'output'))
 
 buf.instances.figs
-# (Instance('i1'), Instance('i2'))
+# => (Instance('i1'), Instance('i2'))
 
 buf.nets.figs
-# (Net('A'), Net('Z'), Net('inter'))
+# => (Net('A'), Net('Z'), Net('inter'))
 ```
 
 + 导出为 Spice
@@ -157,11 +157,13 @@ design = fromVerilog("top.v")
 + 也可以直接使用 CLI 工具
 
 ```shell
-python -m ichier parse verilog top.v
-python -m ichier parse spice top.cdl
+ichier parse top.v
+ichier parse top.cdl
 ```
 
-> 预先安装 `ipython` 和 `rich` 库，会有更好的交互体验。
+> 建议预先安装 `ipython` 和 `rich` 库，会有更好的交互体验。
+
+![parse](./img/parse.gif "Parse")
 
 ## LICENSE
 

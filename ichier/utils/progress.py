@@ -1,5 +1,13 @@
 from __future__ import annotations
-from typing import Optional, overload
+from multiprocessing import get_start_method
+
+# 不支持 spawn 进程显示进度条
+# 还没想好怎么改
+if get_start_method() != "fork":
+    raise ImportError("multiprocessing must be started with fork")
+
+from queue import Queue
+from typing import Dict, List, Optional, overload
 from rich.console import Console
 from rich.progress import (
     Task,
@@ -13,6 +21,7 @@ from rich.progress import (
     TimeRemainingColumn,
 )
 from shutil import get_terminal_size
+from multiprocessing import Manager
 
 
 class LoadProgress:
@@ -43,6 +52,14 @@ class LoadProgress:
 
     def task(self, id: TaskID) -> LoadTask:
         return LoadTask(self, self.progress.tasks[id])
+
+    @property
+    def task_ids(self) -> List[TaskID]:
+        return self.progress.task_ids
+
+    @property
+    def finished(self) -> bool:
+        return self.progress.finished
 
     @overload
     def total(self, id: TaskID) -> float: ...
@@ -117,6 +134,33 @@ class LoadTask:
 
     def isdone(self) -> bool:
         return self.progress.isdone(self.id)
+
+
+class Daemon:
+    msg_queue: Queue = Manager().Queue()
+
+    def worker(self) -> None:
+        progress = LoadProgress()
+        task_map: Dict[str, LoadTask] = {}
+        with progress:
+            while True:
+                if progress.task_ids and progress.finished:
+                    break
+                msg = self.msg_queue.get()
+                if msg["type"] == "init":
+                    task_map[msg["id"]] = progress.task(
+                        progress.add(description=msg["value"])
+                    )
+                else:
+                    if msg["id"] not in task_map:
+                        continue
+                    task = task_map[msg["id"]]
+                    if msg["type"] == "total":
+                        task.total = msg["value"]
+                    elif msg["type"] == "current":
+                        task.current = msg["value"]
+                    elif msg["type"] == "done":
+                        task.done()
 
 
 if __name__ == "__main__":

@@ -80,4 +80,4 @@ class NetCollection(FigCollection):
         self.clear()
         for name in all_nets:
             self.append(Net(name))
-            logger.info(f"Rebuilding module {module.name!r} net {name!r} ...")
+        logger.info(f"Rebuilding module {module.name!r} nets {len(self)}")
