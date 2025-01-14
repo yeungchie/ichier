@@ -23,20 +23,20 @@ __all__ = [
     "Module",
     "ModuleCollection",
     "Reference",
-    "BuiltIn",
+    "DesignateReference",
 ]
 
 
 class Module(Fig):
     def __init__(
         self,
-        name: str,
+        name: Optional[str] = None,
         terminals: Iterable[obj.Terminal] = (),
         nets: Iterable[obj.Net] = (),
         instances: Iterable[obj.Instance] = (),
         parameters: Optional[Dict[str, Any]] = None,
     ) -> None:
-        self.name = name
+        super().__init__(name)
         self.__terminals = obj.TerminalCollection(self, terminals)
         self.__nets = obj.NetCollection(self, nets)
         self.__instances = obj.InstanceCollection(self, instances)
@@ -312,6 +312,6 @@ class Reference(str):
         return design.modules.get(self.name)
 
 
-class BuiltIn(Reference):
+class DesignateReference(Reference):
     def getMaster(self) -> None:
-        raise NotImplementedError("Built-in devices do not have master")
+        raise NotImplementedError("Designate reference do not have master")

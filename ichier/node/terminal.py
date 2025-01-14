@@ -13,10 +13,10 @@ __all__ = [
 class Terminal(Fig):
     def __init__(
         self,
-        name: str,
+        name: Optional[str] = None,
         direction: Literal["input", "output", "inout"] = "inout",
     ) -> None:
-        self.name = name
+        super().__init__(name)
         self.direction = direction
 
     def __repr__(self) -> str:
@@ -55,5 +55,4 @@ class TerminalCollection(FigCollection):
             "total": len(self),
             "order": list(self.order),
             "direction": {name: x.direction for name, x in self.items()},
-            "connection": {name: x.net_name for name, x in self.items()},
         }

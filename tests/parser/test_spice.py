@@ -1,6 +1,6 @@
 from textwrap import dedent
 
-from ichier.parser.spice import fromString
+from ichier.parser.spice import fromCode
 from ichier import Module
 
 
@@ -16,7 +16,7 @@ class TestSpiceParser:
         """
 
         code = dedent(code)
-        design = fromString(code)
+        design = fromCode(code)
         assert isinstance(design.modules["buf"], Module)
         assert design.modules["buf"].instances["i0"].reference == "inv"
         assert design.modules["buf"].instances["i1"].reference == "inv"

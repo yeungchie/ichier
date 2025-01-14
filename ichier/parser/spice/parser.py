@@ -1,13 +1,9 @@
 from __future__ import annotations
-from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Callable, Dict, List, Optional, Tuple, Union
-import re
+from typing import Dict, List, Optional, Tuple
 
 from icutk.string import LineIterator
 
-import ichier
-from ichier.node import BuiltIn
+from ichier.node import Design, Module, DesignateReference, Terminal, Net, Instance
 from ichier.utils.escape import makeSafeString
 
 __all__ = []
@@ -33,163 +29,16 @@ class SpiceIncludeError(SpiceFormatError):
     pass
 
 
-def fromFile(
-    file: Union[str, Path],
-    *,
-    rebuild: bool = False,
-    cb_init: Optional[Callable] = None,
-    cb_next: Optional[Callable] = None,
-) -> ichier.Design:
-    path = Path(file)
-    return fromString(
-        path.read_text(encoding="utf-8"),
-        rebuild=rebuild,
-        cb_init=cb_init,
-        cb_next=cb_next,
-        path=path,
-    )
-
-
-def fromString(
-    string: str,
-    *,
-    rebuild: bool = False,
-    cb_init: Optional[Callable] = None,
-    cb_next: Optional[Callable] = None,
-    path: Optional[Path] = None,
-) -> ichier.Design:
-    args_array = []
-    for item in parseHier(string):
-        args_array.append((item, cb_init, cb_next, path))
-    designs = [__worker(*args) for args in args_array]
-    design = ichier.Design()
-    for d in designs:
-        design.includeOtherDesign(d)
-    if rebuild:
-        design.modules.rebuild()
-    if path is not None:
-        path = Path(path)
-        design.path = path
-        design.name = path.name
-        for m in design.modules:
-            if m.path is None:
-                m.path = path
-    return design
-
-
-def __worker(
-    item: Union[NetlistString, NetlistFile],
-    cb_init: Optional[Callable] = None,
-    cb_next: Optional[Callable] = None,
-    path: Optional[Union[str, Path]] = None,
-) -> ichier.Design:
-    if isinstance(item, NetlistString):
-        return __fromString(
-            item.string,
-            cb_init=cb_init,
-            cb_next=cb_next,
-            path=path,
-        )
-    elif isinstance(item, NetlistFile):
-        return __fromFile(
-            item.path,
-            cb_init=cb_init,
-            cb_next=cb_next,
-            priority=item.priority,
-        )
-
-
-def __fromFile(file: Union[str, Path], **kwargs) -> ichier.Design:
-    path = Path(file)
-    kwargs["path"] = path
-    design = __fromString(path.read_text("utf-8"), **kwargs)
-    design.name = path.name
-    design.path = path
-    return design
-
-
-def __fromString(
-    string: str,
-    *,
-    cb_init: Optional[Callable] = None,
-    cb_next: Optional[Callable] = None,
-    priority: Tuple[int, ...] = (),
-    path: Optional[Union[str, Path]] = None,
-) -> ichier.Design:
-    lineiter = LineIterator(
-        data=string.splitlines(),
-        cb_init=cb_init,
-        cb_next=cb_next,
-    )
-    lineiter.priority = priority  # type: ignore
-    if path is not None:
-        path = Path(path)
-        lineiter.path = path  # type: ignore
-    design = __parse(
-        lineiter=lineiter,
-        priority=priority,
-    )
-    if path is not None:
-        design.path = path
-        design.name = path.name
-    return design
-
-
-def removeComments(string: str) -> str:
-    return re.sub(r"^(\*|\$)", "", string, flags=re.MULTILINE)
-
-
-def parseHier(
-    string: str,
-    *,
-    queue: Optional[list] = None,
-    priority: tuple = (),
-):
-    if queue is None:
-        queue = []
-    if priority is None:
-        priority = ()
-    if not priority:
-        queue.append(NetlistString(string=string))
-    for i, line in enumerate(removeComments(string).splitlines()):
-        if line.upper().startswith(".INCLUDE"):
-            if m := re.fullmatch(r"\.INCLUDE\s+\"?([^\"\s]*)\"?", line, re.IGNORECASE):
-                file_priority = priority + (i + 1,)
-                path = Path(m.group(1))
-                queue.append(NetlistFile(priority=file_priority, path=path))
-                parseHier(
-                    string=path.read_text(encoding="utf-8"),
-                    queue=queue,
-                    priority=file_priority,
-                )
-            else:
-                raise SpiceIncludeError(
-                    f"Invalid include statement at line {i+1}:\n>>> {line}"
-                )
-    return queue
-
-
-@dataclass
-class NetlistString:
-    string: str = field(default_factory=str, repr=False)
-
-
-@dataclass
-class NetlistFile:
-    priority: tuple
-    path: Path
-
-
-def __parse(
+def parse(
     lineiter: LineIterator,
     priority: Tuple[int, ...] = (),
-) -> ichier.Design:
-    design = ichier.Design(priority=priority)
+) -> Design:
+    design = Design(priority=priority)
     for line in lineiter:
         lineno = lineiter.line
         if line.upper().startswith(".SUBCKT"):
             lineiter.revert()
-            module = __subcktParse(lineiter)
+            module = parseSubckt(lineiter)
             if design.modules.get(module.name) is not None:
                 continue  # 忽略重复的 subckt 定义
             module.lineno = lineno
@@ -199,11 +48,11 @@ def __parse(
     return design
 
 
-def __subcktParse(lineiter: LineIterator) -> ichier.Module:
+def parseSubckt(lineiter: LineIterator) -> Module:
     module_name: Optional[str] = None
-    terminals: Dict[str, ichier.Terminal] = {}
-    nets: Dict[str, ichier.Net] = {}
-    instances: Dict[str, ichier.Instance] = {}
+    terminals: Dict[str, Terminal] = {}
+    nets: Dict[str, Net] = {}
+    instances: Dict[str, Instance] = {}
     parameters: Dict[str, str] = {}
 
     line = lineiter.next
@@ -217,14 +66,14 @@ def __subcktParse(lineiter: LineIterator) -> ichier.Module:
     tokens = line.split()
     module_name = tokens[1]
     for term in tokens[2:]:
-        terminals[term] = ichier.Terminal(name=term)
+        terminals[term] = Terminal(name=term)
 
     # 看看 term 定义是否完整
     for line in lineiter:
         if line.startswith("+"):
             # 下一行 + 开头说明 term 还没定义结束
             for term in line.split()[1:]:
-                terminals[term] = ichier.Terminal(name=term)
+                terminals[term] = Terminal(name=term)
         else:
             lineiter.revert()
             break
@@ -237,7 +86,7 @@ def __subcktParse(lineiter: LineIterator) -> ichier.Module:
         elif line.startswith("*"):
             if line.upper().startswith("*.PININFO"):
                 lineiter.revert()
-                for term, dir in __subcktPinInfoParse(lineiter).items():
+                for term, dir in parseSubcktPinInfo(lineiter).items():
                     if term in terminals:
                         terminals[term].direction = dir
                     else:
@@ -251,19 +100,19 @@ def __subcktParse(lineiter: LineIterator) -> ichier.Module:
                 break
             elif line.upper().startswith(".PARAM"):
                 lineiter.revert()
-                for name, value in __subcktParamParse(lineiter).items():
+                for name, value in parseSubcktParams(lineiter).items():
                     parameters[name] = value
             else:
                 continue
         else:
             lineiter.revert()
-            inst, net_names = __subcktInstanceParse(lineiter)
+            inst, net_names = parseSubcktInstance(lineiter)
             instances[inst.name] = inst
             for name in net_names:
                 if name not in nets:
-                    nets[name] = ichier.Net(name=name)
+                    nets[name] = Net(name=name)
 
-    return ichier.Module(
+    return Module(
         name=module_name,
         terminals=terminals.values(),
         nets=nets.values(),
@@ -272,7 +121,7 @@ def __subcktParse(lineiter: LineIterator) -> ichier.Module:
     )
 
 
-def __subcktPinInfoParse(lineiter: LineIterator) -> Dict[str, str]:
+def parseSubcktPinInfo(lineiter: LineIterator) -> Dict[str, str]:
     """
     `*.PININFO A:I B:I Y:O VDD:B VSS:B`
     """
@@ -288,7 +137,7 @@ def __subcktPinInfoParse(lineiter: LineIterator) -> Dict[str, str]:
     return pininfo
 
 
-def __subcktParamParse(lineiter: LineIterator) -> Dict[str, str]:
+def parseSubcktParams(lineiter: LineIterator) -> Dict[str, str]:
     """
     `.PARAMS A=1 B=2 C=3`
     """
@@ -300,7 +149,7 @@ def __subcktParamParse(lineiter: LineIterator) -> Dict[str, str]:
     return params
 
 
-def __subcktInstanceParse(lineiter: LineIterator) -> Tuple[ichier.Instance, List[str]]:
+def parseSubcktInstance(lineiter: LineIterator) -> Tuple[Instance, List[str]]:
     """
     1. user device / connect by order:
 
@@ -373,7 +222,7 @@ def __subcktInstanceParse(lineiter: LineIterator) -> Tuple[ichier.Instance, List
 
         ref_name = nets_and_ref[-1]
         if ref_name.startswith("$[") and ref_name.endswith("]"):
-            ref_name = BuiltIn(ref_name[2:-1])
+            ref_name = DesignateReference(ref_name[2:-1])
 
         connect_info = nets_and_ref[:-1]
 
@@ -382,7 +231,7 @@ def __subcktInstanceParse(lineiter: LineIterator) -> Tuple[ichier.Instance, List
     elif isinstance(connect_info, list):
         connect_info = [makeSafeString(n) for n in connect_info]
 
-    inst = ichier.Instance(
+    inst = Instance(
         name=inst_name,
         reference=ref_name,
         connection=connect_info,

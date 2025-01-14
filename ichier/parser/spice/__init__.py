@@ -1,16 +1,15 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import List, Optional, Union
-from pathlib import Path
 from multiprocessing import Pool
+from pathlib import Path
 from queue import Queue
+from typing import List, Optional, Union
 import re
 import os
 
-from ichier import Design
-from .parser import VerilogParser
-
-__all__ = []
+from .string import LineIterator
+from .parser import parse, SpiceIncludeError
+import ichier
 
 
 def fromFile(
@@ -18,7 +17,7 @@ def fromFile(
     *,
     rebuild: bool = False,
     msg_queue: Optional[Queue] = None,
-) -> Design:
+) -> ichier.Design:
     path = Path(file)
     return fromCode(
         path.read_text(encoding="utf-8"),
@@ -32,25 +31,20 @@ def fromCode(
     code: str,
     *,
     rebuild: bool = False,
-    path: Optional[Union[str, Path]] = None,
+    path: Optional[Path] = None,
     msg_queue: Optional[Queue] = None,
-) -> Design:
+) -> ichier.Design:
     args_array = []
     for item in parseInclude(code):
-        if isinstance(item, CodeItem):
-            args_array.append((item, path, msg_queue))
-        elif isinstance(item, FileItem):
-            args_array.append((item, None, msg_queue))
-
-    design = Design()
+        args_array.append((item, path, msg_queue))
     # designs = [worker(*args) for args in args_array]
     with Pool() as pool:
         designs = pool.starmap(worker, args_array)
+    design = ichier.Design()
     for d in designs:
         design.includeOtherDesign(d)
-
     if rebuild:
-        design.modules.rebuild(verilog_style=True)
+        design.modules.rebuild()
     if path is not None:
         path = Path(path)
         design.path = path
@@ -65,7 +59,7 @@ def worker(
     item: Union[CodeItem, FileItem],
     path: Optional[Union[str, Path]] = None,
     msg_queue: Optional[Queue] = None,
-) -> Design:
+) -> ichier.Design:
     if isinstance(item, CodeItem):
         design = item.load(path=path, msg_queue=msg_queue)
     elif isinstance(item, FileItem):
@@ -74,12 +68,15 @@ def worker(
 
 
 def removeComments(code: str) -> str:
-    return re.sub(
-        r"/\*.*?\*/",
-        lambda m: "\n" * m.group().count("\n"),
-        code,
-        flags=re.DOTALL,
-    )
+    lines = []
+    for line in code.splitlines(keepends=True):
+        if line.startswith("*"):
+            lines.append("\n")
+        elif line.startswith("$"):
+            lines.append("\n")
+        else:
+            lines.append(line)
+    return "".join(lines)
 
 
 def parseInclude(
@@ -90,20 +87,23 @@ def parseInclude(
 ) -> List[Union[CodeItem, FileItem]]:
     if queue is None:
         queue = []
-    if priority is None:
-        priority = ()
     if not priority:
         queue.append(CodeItem(priority=priority, code=code))
     for i, line in enumerate(removeComments(code).splitlines()):
-        if m := re.match(r'`include "([^"\s]+)"', line):
-            file_priority = priority + (i + 1,)
-            path = Path(os.path.expandvars(m.group(1))).expanduser()
-            queue.append(FileItem(priority=file_priority, path=path, code=""))
-            parseInclude(
-                code=path.read_text(encoding="utf-8"),
-                queue=queue,
-                priority=file_priority,
-            )
+        if line.upper().startswith(".INCLUDE"):
+            if m := re.match(r"\.INCLUDE\s+\"?([^\"\s]*)\"?", line, re.IGNORECASE):
+                file_priority = priority + (i + 1,)
+                path = Path(os.path.expandvars(m.group(1))).expanduser()
+                queue.append(FileItem(priority=file_priority, path=path, code=""))
+                parseInclude(
+                    code=path.read_text(encoding="utf-8"),
+                    queue=queue,
+                    priority=file_priority,
+                )
+            else:
+                raise SpiceIncludeError(
+                    f"Invalid include statement at line {i+1}:\n>>> {line}"
+                )
     return queue
 
 
@@ -116,13 +116,25 @@ class CodeItem:
         self,
         path: Optional[Union[str, Path]] = None,
         msg_queue: Optional[Queue] = None,
-    ) -> Design:
-        vparser = VerilogParser(
-            priority=self.priority,
+    ) -> ichier.Design:
+        lineiter = LineIterator(
+            data=self.code.splitlines(),
             path=path,
+            priority=self.priority,
             msg_queue=msg_queue,
         )
-        return vparser.parse(self.code)
+        lineiter.priority = self.priority
+        if path is not None:
+            path = Path(path)
+            lineiter.path = path
+        design = parse(
+            lineiter=lineiter,
+            priority=self.priority,
+        )
+        if path is not None:
+            design.path = path
+            design.name = path.name
+        return design
 
 
 @dataclass
@@ -134,9 +146,13 @@ class FileItem:
     def load(
         self,
         msg_queue: Optional[Queue] = None,
-    ) -> Design:
+    ) -> ichier.Design:
         path = Path(self.path)
-        return CodeItem(
+        design = CodeItem(
             priority=self.priority,
             code=path.read_text(encoding="utf-8"),
         ).load(path=path, msg_queue=msg_queue)
+        if path is not None:
+            design.path = path
+            design.name = path.name
+        return design

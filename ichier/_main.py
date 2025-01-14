@@ -1,11 +1,14 @@
 from argparse import ArgumentParser
+from multiprocessing import Process
 from pathlib import Path
 from textwrap import dedent
 from typing import Literal, Optional, Union
 import os
+import re
 
 from . import release
 from .node import obj
+from .parser import fromVerilog, fromSpice
 
 
 def parse_arguments():
@@ -34,12 +37,12 @@ def parse_arguments():
         help="Parse a circuit file, and start an interactive shell",
         epilog=release.copyright,
     )
-    parse.add_argument(
-        "format",
-        type=str,
-        choices=["spice", "verilog"],
-        help="Format of the circuit file (spice or verilog)",
-    )
+    # parse.add_argument(
+    #     "format",
+    #     type=str,
+    #     choices=["spice", "verilog"],
+    #     help="Format of the circuit file (spice or verilog)",
+    # )
     parse.add_argument("file", type=str, help="Path to the circuit file")
     parse.add_argument(
         "--lang",
@@ -52,90 +55,78 @@ def parse_arguments():
     return main_parser.parse_args()
 
 
-def load_design(
-    format: Literal["spice", "verilog"],
+def load_file(
     file: Union[str, Path],
+    format: Optional[Literal["spice", "verilog"]] = None,
 ) -> Optional[obj.Design]:
-    try:
-        if format == "spice":
-            return __load_spice(file)
-        elif format == "verilog":
-            return __load_verilog(file)
+    if format is None:
+        if ":" in str(file):
+            file, _, mark = str(file).rpartition(":")
         else:
-            raise ValueError(f"Unsupported format: {format}")
+            mark = str(file).rpartition(".")[-1]
+
+        spice_pattern = r"sp|spi|spice|cdl|cir"
+        verilog_pattern = r"v|vh|vhd|verilog"
+        if re.match(spice_pattern, mark, re.IGNORECASE):
+            format = "spice"
+        elif re.match(verilog_pattern, mark, re.IGNORECASE):
+            format = "verilog"
+        else:
+            raise ValueError(
+                f"support format mark: spice({spice_pattern}) or verilog({verilog_pattern}) - {mark!r}"
+            )
+
+    if format == "spice":
+        loader = load_spice
+    elif format == "verilog":
+        loader = load_verilog
+    else:
+        raise ValueError(f"Unsupported format: {format}")
+
+    try:
+        return loader(file)
     except KeyboardInterrupt:
         return
     except FileNotFoundError as e:
         raise FileNotFoundError(f"File not found: {e.filename}")
-    except Exception as e:
-        raise RuntimeError(f"Error while loading design.\n{e}")
 
 
-def __load_spice(file) -> obj.Design:
-    from .parser import fromSpice
+try:
+    from .utils.progress import Daemon
 
-    try:
-        from .utils.progress import LoadProgress, LoadTask
-        from icutk.string import LineIterator
+    def load_verilog(file) -> obj.Design:
+        PD = Daemon()
+        pdp = Process(target=PD.worker, daemon=True)
+        pdp.start()
+        design = fromVerilog(file, msg_queue=PD.msg_queue)
+        design.modules.rebuild(mute=True, verilog_style=True)
+        pdp.join(300)
+        if pdp.is_alive():
+            pdp.terminate()
+        return design
 
-        load_progress = LoadProgress()
+    def load_spice(file) -> obj.Design:
+        PD = Daemon()
+        pdp = Process(target=PD.worker, daemon=True)
+        pdp.start()
+        design = fromSpice(file, msg_queue=PD.msg_queue)
+        design.modules.rebuild(mute=True)
+        pdp.join(300)
+        if pdp.is_alive():
+            pdp.terminate()
+        return design
 
-        def line_init_cb(lineiter: LineIterator):
-            id = load_progress.add("Spice")
-            task = load_progress.task(id)
-            task.total = lineiter.total_lines
-            lineiter.task = task  # type: ignore
+except ImportError:
 
-        def line_next_cb(lineiter: LineIterator, data: str):
-            task: LoadTask = lineiter.task  # type: ignore
-            if task.isdone():
-                return
-            if task.current == 0:
-                task.description = f"{'  '*len(lineiter.priority)}{lineiter.path.name}"  # type: ignore
-            task.current = lineiter.line
-
-        with load_progress:
-            design = fromSpice(file, cb_init=line_init_cb, cb_next=line_next_cb)
-    except ImportError:
-        design = fromSpice(file)
-    return design
-
-
-def __load_verilog(file) -> obj.Design:
-    from .parser import fromVerilog
-
-    try:
-        from .utils.progress import LoadProgress, LoadTask
-        from icutk.lex import Lexer, LexToken
-
-        load_progress = LoadProgress()
-
-        def verilog_input_cb(lexer: Lexer):
-            if not isinstance(lexer.lexdata, str):
-                raise ValueError("lexer.lexdata should be a string")
-            id = load_progress.add("Verilog")
-            task = load_progress.task(id)
-            task.total = lexer.lexdata.count("\n") + 1
-            lexer.task = task  # type: ignore
-
-        def verilog_token_cb(lexer: Lexer, token: LexToken):
-            task: LoadTask = lexer.task  # type: ignore
-            if task.isdone():
-                return
-            if task.current == 0:
-                task.description = f"{'  '*len(lexer.priority)}{lexer.path.name}"  # type: ignore
-            task.current = lexer.lineno
-
-        with load_progress:
-            design = fromVerilog(
-                file,
-                cb_input=verilog_input_cb,
-                cb_token=verilog_token_cb,
-            )
-    except ImportError:
+    def load_verilog(file) -> obj.Design:
         design = fromVerilog(file)
-    design.modules.rebuild(mute=True, verilog_style=True)
-    return design
+        design.modules.rebuild(mute=True, verilog_style=True)
+        return design
+
+    def load_spice(file) -> obj.Design:
+        design = fromSpice(file)
+        design.modules.rebuild(mute=True)
+        return design
 
 
 def show_tips(design: obj.Design, used_time: float, lang: Literal["en", "zh"] = "en"):
@@ -200,7 +191,7 @@ def main():
         from time import perf_counter
 
         start = perf_counter()
-        design = load_design(args.format, args.file)
+        design = load_file(args.file)
         if design is None:
             return
         used = perf_counter() - start

@@ -16,6 +16,8 @@ def needEscape(s: str) -> bool:
 
 class EscapeString(str):
     def __new__(cls, value):
+        if isinstance(value, EscapeString):
+            return super().__new__(cls, value)
         s = str(value)
         if not needEscape(s):
             raise ValueError(f"String is not need to be escaped - {value!r}")
@@ -27,10 +29,12 @@ class EscapeString(str):
         return f"EscapeString({super().__repr__()})"
 
     def __str__(self):
-        return f"\\{super().__str__()}"
+        return f"{super().__str__()}"
 
 
 def makeSafeString(s: str) -> Union[str, EscapeString]:
+    if isinstance(s, EscapeString):
+        return s
     try:
         return EscapeString(s)
     except ValueError:

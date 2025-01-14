@@ -17,8 +17,8 @@ __all__ = [
 class Instance(Fig):
     def __init__(
         self,
-        name: str,
         reference: str,
+        name: Optional[str] = None,
         connection: Union[
             None,
             Dict[str, Union[None, str, Sequence[str]]],
@@ -26,7 +26,7 @@ class Instance(Fig):
         ] = None,
         parameters: Optional[Dict[str, Any]] = None,
     ) -> None:
-        self.name = name
+        super().__init__(name)
         self.reference = reference
 
         if connection is None:
@@ -41,8 +41,8 @@ class Instance(Fig):
 
     @reference.setter
     def reference(self, value: str) -> None:
-        if isinstance(value, obj.BuiltIn):
-            ref_cls = obj.BuiltIn
+        if isinstance(value, obj.DesignateReference):
+            ref_cls = obj.DesignateReference
         else:
             ref_cls = obj.Reference
         self.__reference = ref_cls(value, instance=self)
@@ -217,7 +217,7 @@ class Instance(Fig):
 
     def dumpToSpice(self, *, width_limit: int = 88) -> str:
         tokens = [self.name]
-        if isinstance(self.reference, obj.BuiltIn):
+        if isinstance(self.reference, obj.DesignateReference):
             if isinstance(self.connection, dict):
                 for net in self.connection.values():
                     if not isinstance(net, str):

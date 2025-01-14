@@ -1,5 +1,4 @@
-from pathlib import Path
-from typing import Callable, Dict, List, Literal, Optional, Tuple, Union
+from typing import Dict, List, Literal, Optional, Union
 from dataclasses import dataclass
 
 from ply.yacc import yacc
@@ -43,6 +42,17 @@ class ModuleInstItem:
 
 
 class VerilogParser:
+    def __init__(self, *args, **kwargs):
+        self.lexer = VerilogLexer(*args, **kwargs)
+        self.tokens = self.lexer.tokens
+        self.parser = yacc(module=self, debug=False, write_tables=False)
+
+    def parse(self, text: str) -> Design:
+        design: Design = self.parser.parse(text, lexer=self.lexer)
+        design.priority = self.lexer.priority
+        self.lexer.cb_done()
+        return design
+
     def p_design(self, p):  # 设计
         """
         design  :  design_item_list
@@ -410,25 +420,3 @@ class VerilogParser:
             raise SyntaxError("Syntax error at EOF")
         else:
             raise SyntaxError(f"Syntax error at line {t.lineno} - {t.value!r}")
-
-    def __init__(
-        self,
-        *,
-        cb_input: Optional[Callable] = None,
-        cb_token: Optional[Callable] = None,
-        priority: Tuple[int, ...] = (),
-        path: Optional[Union[str, Path]] = None,
-    ):
-        self.lexer = VerilogLexer(
-            cb_input=cb_input,
-            cb_token=cb_token,
-            priority=priority,
-            path=path,
-        )
-        self.tokens = self.lexer.tokens
-        self.parser = yacc(module=self, debug=False, write_tables=False)
-
-    def parse(self, text) -> Design:
-        design = self.parser.parse(text, lexer=self.lexer)
-        design.priority = self.lexer.lexer.priority
-        return design
