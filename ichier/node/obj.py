@@ -1,4 +1,4 @@
-from .parameter import ParameterCollection
+from .parameter import ParameterCollection, SpecifyParameters, OrderParameters
 from .instance import Instance, InstanceCollection
 from .module import Module, ModuleCollection, Reference, DesignateReference
 from .net import Net, NetCollection
@@ -19,4 +19,6 @@ __all__ = [
     "Terminal",
     "TerminalCollection",
     "ParameterCollection",
+    "SpecifyParameters",
+    "OrderParameters",
 ]

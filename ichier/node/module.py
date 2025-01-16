@@ -35,12 +35,14 @@ class Module(Fig):
         nets: Iterable[obj.Net] = (),
         instances: Iterable[obj.Instance] = (),
         parameters: Optional[Dict[str, Any]] = None,
+        specparams: Optional[Dict[str, Any]] = None,
     ) -> None:
         super().__init__(name)
         self.__terminals = obj.TerminalCollection(self, terminals)
         self.__nets = obj.NetCollection(self, nets)
         self.__instances = obj.InstanceCollection(self, instances)
         self.__parameters = obj.ParameterCollection(parameters)
+        self.__specparams = obj.SpecifyParameters(specparams)
         self.__lienno = None
         self.__path = None
 
@@ -59,6 +61,10 @@ class Module(Fig):
     @property
     def parameters(self) -> obj.ParameterCollection:
         return self.__parameters
+
+    @property
+    def specparams(self) -> obj.SpecifyParameters:
+        return self.__specparams
 
     @property
     def lineno(self) -> Optional[int]:
