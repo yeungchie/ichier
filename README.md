@@ -99,16 +99,19 @@ buf.nets.figs
 
 ```python
 print(design.dumpToSpice())
-# .SUBCKT inv A Z
-# *.PININFO A:I Z:O
-# .ENDS
+```
+
+```spice
+.SUBCKT inv A Z
+*.PININFO A:I Z:O
+.ENDS
 
 
-# .SUBCKT buf A Z
-# *.PININFO A:I Z:O
-# i1 / inv $PINS A=A Z=inter
-# i2 / inv $PINS A=inter Z=Z
-# .ENDS
+.SUBCKT buf A Z
+*.PININFO A:I Z:O
+i1 / inv $PINS A=A Z=inter
+i2 / inv $PINS A=inter Z=Z
+.ENDS
 ```
 
 ## 从网表读入设计
