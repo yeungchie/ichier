@@ -56,6 +56,7 @@ class VerilogParser:
     def p_design(self, p):  # 设计
         """
         design  :  design_item_list
+                |  empty
         """
         design = Design()
         for item in p[1]:
@@ -64,6 +65,12 @@ class VerilogParser:
                     continue  # 忽略重复的 module 定义
                 design.modules.append(item)
         p[0] = design
+
+    def p_empty(self, p):  # 没有模块定义
+        """
+        empty  :
+        """
+        p[0] = []
 
     def p_design_item_list(self, p):  # 设计项列表
         """
