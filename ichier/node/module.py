@@ -103,6 +103,7 @@ class Module(Fig):
                 "terminals": self.terminals.summary(),
                 "nets": self.nets.summary(),
                 "parameters": self.parameters.summary(),
+                "specparams": self.specparams.summary(),
             }
         else:
             raise ValueError("type must be 'compact' or 'detail'")
