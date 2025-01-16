@@ -100,7 +100,8 @@ class VerilogParser:
                     )
         nets = {}
         insts = {}
-        params = {"specify": {}}
+        params = {}
+        specparams = {}
 
         if len(p) == 4:
             for item in p[2]:
@@ -126,7 +127,7 @@ class VerilogParser:
                         connection=item.connection,
                     )
                 elif isinstance(item, ModuleSpecifyItem):
-                    params["specify"].update(item)
+                    specparams.update(item)
 
         terms: List[Terminal] = []
         for port, members in port_order.items():
@@ -141,6 +142,7 @@ class VerilogParser:
             nets=nets.values(),
             instances=insts.values(),
             parameters=params,
+            specparams=specparams,
         )
         p[0].lineno = p[1]["lineno"]
 
