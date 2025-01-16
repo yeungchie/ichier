@@ -25,6 +25,7 @@ class Instance(Fig):
             Sequence[Union[None, str, Sequence[str]]],
         ] = None,
         parameters: Optional[Dict[str, Any]] = None,
+        orderparams: Optional[Sequence[str]] = None,
     ) -> None:
         super().__init__(name)
         self.reference = reference
@@ -33,6 +34,7 @@ class Instance(Fig):
             connection = {}
         self.connection = connection
         self.__parameters = obj.ParameterCollection(parameters)
+        self.__orderparams = obj.OrderParameters(orderparams)
         self.collection: obj.InstanceCollection
 
     @property

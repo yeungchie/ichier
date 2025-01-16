@@ -56,6 +56,7 @@ class VerilogParser:
     def p_design(self, p):  # 设计
         """
         design  :  design_item_list
+                |  empty
         """
         design = Design()
         for item in p[1]:
@@ -64,6 +65,12 @@ class VerilogParser:
                     continue  # 忽略重复的 module 定义
                 design.modules.append(item)
         p[0] = design
+
+    def p_empty(self, p):  # 没有模块定义
+        """
+        empty  :
+        """
+        p[0] = []
 
     def p_design_item_list(self, p):  # 设计项列表
         """
@@ -100,7 +107,8 @@ class VerilogParser:
                     )
         nets = {}
         insts = {}
-        params = {"specify": {}}
+        params = {}
+        specparams = {}
 
         if len(p) == 4:
             for item in p[2]:
@@ -126,7 +134,7 @@ class VerilogParser:
                         connection=item.connection,
                     )
                 elif isinstance(item, ModuleSpecifyItem):
-                    params["specify"].update(item)
+                    specparams.update(item)
 
         terms: List[Terminal] = []
         for port, members in port_order.items():
@@ -141,6 +149,7 @@ class VerilogParser:
             nets=nets.values(),
             instances=insts.values(),
             parameters=params,
+            specparams=specparams,
         )
         p[0].lineno = p[1]["lineno"]
 
