@@ -110,6 +110,10 @@ class Instance(Fig):
     def parameters(self) -> obj.ParameterCollection:
         return self.__parameters
 
+    @property
+    def orderparams(self) -> obj.OrderParameters:
+        return self.__orderparams
+
     def __getitem__(self, key: str) -> Any:
         return self.parameters[key]
 
