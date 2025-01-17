@@ -84,6 +84,9 @@ class Design(Fig):
             else:
                 self.modules.append(m)
 
+    def getTopLevelModules(self) -> Tuple[obj.Module, ...]:
+        return self.modules.getTopLevels()
+
     def dumpToSpice(self, *, width_limit: int = 88) -> str:
         return "\n\n\n".join(
             m.dumpToSpice(width_limit=width_limit) for m in self.modules
