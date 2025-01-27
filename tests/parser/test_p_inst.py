@@ -102,6 +102,15 @@ class TestSyntax:
     def test_syntax4(self):
         lexer = InstLexer()
 
+        lexer.input("R0 net1 net2 1.2 $[res]")
+        assert tuple(map(expand_token, lexer)) == (
+            ("WORD", "R0"),
+            ("WORD", "net1"),
+            ("WORD", "net2"),
+            ("WORD", "1.2"),
+            ("DESIGNATE", "res"),
+        )
+
         lexer.input("R0 net1 net2 1.2 $[res] w=1 l=2")
         assert tuple(map(expand_token, lexer)) == (
             ("WORD", "R0"),
@@ -151,6 +160,13 @@ class TestSyntax:
             ("ASSIGN", ("$Y", "2")),
             ("ASSIGN", ("$D", "3")),
         )
+
+        inst = parse("R0 net1 net2 1.2 $[res]")
+        assert inst.name == "R0"
+        assert inst.reference.name == "res"
+        assert inst.connection == ("net1", "net2")
+        assert inst.orderparams == ["1.2"]
+        assert inst.parameters == {}
 
         inst = parse("R0 net1 net2 1.2 $[res] w=1 l=2")
         assert inst.name == "R0"
