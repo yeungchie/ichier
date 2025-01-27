@@ -179,6 +179,7 @@ def parseSubcktInstance(lineiter: LineIterator) -> Tuple[Instance, List[str]]:
 
     inst_name = tokens[0]
     params = {}
+    order_params = []
     if "/" in tokens:
         if tokens[1] == "/":
             # X4 / INV $PINS A=IN VDD=VDD VSS=VSS Z=OUT
@@ -209,14 +210,12 @@ def parseSubcktInstance(lineiter: LineIterator) -> Tuple[Instance, List[str]]:
         # X2 A VSS 1.2 $[res] w=1 l=2
         # X2 A VSS w=1 1.2 $[res] l=2
         nets_and_ref = []
-        param_order = 1
         for token in tokens[1:]:
             if "=" in token:
                 name, value = token.split("=")
                 params[name] = value
             elif token[0].isdigit():
-                params[f"param_order_{param_order}"] = token
-                param_order += 1
+                order_params.append(token)
             else:
                 nets_and_ref.append(token)
 
@@ -236,6 +235,7 @@ def parseSubcktInstance(lineiter: LineIterator) -> Tuple[Instance, List[str]]:
         reference=ref_name,
         connection=connect_info,
         parameters=params,
+        orderparams=order_params,
     )
 
     if isinstance(connect_info, dict):
