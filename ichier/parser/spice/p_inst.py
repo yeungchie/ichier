@@ -16,8 +16,11 @@ class InstLexer(MetaLexer):
 
     def t_WORD(self, t: LexToken):
         r"[^\s/]+"
+        # r"\S+"
         if t.value.upper() == "$PINS":
             t.type = "PINS"
+        # elif t.value == "/":
+        #     t.type = "/"
         elif "=" in t.value:
             arg, _, value = t.value.partition("=")
             if arg.upper() == "$T":
@@ -118,21 +121,28 @@ class InstParser:
 
     def p_syntax4(self, p):
         """
-        syntax4  :  words  DESIGNATE  assigns
+        syntax4  :  words  DESIGNATE
+                 |  words  DESIGNATE  assigns
                  |  words  assigns  DESIGNATE  assigns
         """
+        # R0 net1 net2 1.2 $[res]
         # R0 net1 net2 1.2 $[res] w=1 l=2
         # C0 net1 net2 1.2 $[cap] w=1 l=2
         # C0 net1 net2 1.2 w=1 l=2 $SUB=3 $[cap] $X=1 $Y=2 $D=3
         # Q0 net1 net2 net3 1.2 $[pnp] $X=1 $Y=2 $D=3
         ws = p[1]
         inst = ws.pop(0)
-        if len(p) == 4:
+
+        if len(p) == 3:
+            ref = p[2]
+            params = None
+        elif len(p) == 4:
             ref = p[2]
             params = p[3]
         else:
             ref = p[3]
             params = {**p[2], **p[4]}
+
         if inst[0] in ("R", "C"):
             conn = ws[:2]
             oparams = ws[2:]
@@ -142,6 +152,7 @@ class InstParser:
         else:
             conn = ws
             oparams = None
+
         p[0] = Instance(
             reference=DesignateReference(ref),
             name=inst,
