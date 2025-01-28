@@ -1,8 +1,9 @@
 from pathlib import Path
 from setuptools import setup, find_packages
 import sys
+import re
 
-sys.path.insert(0, ".")
+sys.path.insert(0, str(Path(__file__).parent))
 
 import ichier
 
@@ -13,13 +14,19 @@ AUTHOR = ichier.__author__
 EMAIL = ichier.__email__
 URL = ichier.__url__
 
+readme = re.sub(
+    r"(!\[.*?\]\()(\./)?",
+    lambda m: m.group(1) + URL + "/raw/main/",
+    Path("README.md").read_text("utf-8"),
+)
+
 setup(
     name=PROJECT,
     version=VERSION,
     author=AUTHOR,
     author_email=EMAIL,
     description=DESCRIPTION,
-    long_description=Path("README.md").read_text("utf-8"),
+    long_description=readme,
     long_description_content_type="text/markdown",
     url=URL,
     packages=find_packages(exclude=["tests"]),

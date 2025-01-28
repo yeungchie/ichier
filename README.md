@@ -28,47 +28,19 @@ from ichier import *
 
 design = Design(
     modules=[
-        Module(
-            name="inv",
-            terminals=[
-                Terminal(name="A", direction="input"),
-                Terminal(name="Z", direction="output"),
-            ],
-        ),
+        Module("inv", [Terminal("A", "input"), Terminal("Z", "output")]),
         Module(
             name="buf",
-            terminals=[
-                Terminal(
-                    name="A",
-                    direction="input",
-                ),
-                Terminal(
-                    name="Z",
-                    direction="output",
-                ),
-            ],
-            nets=[
-                Net(name="A"),
-                Net(name="Z"),
-                Net(name="inter"),
-            ],
+            terminals=[Terminal("A", "input"), Terminal("Z", "output")],
+            nets=[Net("A"), Net("Z"), Net("inter")],
             instances=[
                 Instance(
-                    reference="inv",
-                    name="i1",
-                    connection={
-                        "A": "A",
-                        "Z": "inter",
-                    },
-                    parameters={"size": "x2"},
+                    "inv", "i1", {"A": "A", "Z": "inter"}, {"size": "x2"}
                 ),
                 Instance(
-                    reference="inv",
-                    name="i2",
-                    connection={
-                        "A": "inter",
-                        "Z": "Z",
-                    },
+                    name="inv",
+                    reference="i2",
+                    connection={"A": "inter", "Z": "Z"},
                     parameters={"size": "x4"},
                 ),
             ],
@@ -99,16 +71,19 @@ buf.nets.figs
 
 ```python
 print(design.dumpToSpice())
-# .SUBCKT inv A Z
-# *.PININFO A:I Z:O
-# .ENDS
+```
+
+```spice
+.SUBCKT inv A Z
+*.PININFO A:I Z:O
+.ENDS
 
 
-# .SUBCKT buf A Z
-# *.PININFO A:I Z:O
-# i1 / inv $PINS A=A Z=inter
-# i2 / inv $PINS A=inter Z=Z
-# .ENDS
+.SUBCKT buf A Z
+*.PININFO A:I Z:O
+i1 / inv $PINS A=A Z=inter
+i2 / inv $PINS A=inter Z=Z
+.ENDS
 ```
 
 ## 从网表读入设计

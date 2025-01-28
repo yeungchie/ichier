@@ -9,6 +9,7 @@ from typing import (
     Literal,
     Optional,
     Set,
+    Tuple,
     Union,
 )
 from collections import defaultdict
@@ -281,6 +282,12 @@ class ModuleCollection(FigCollection):
             logger.info(f"Rebuilding module {fig.name!r} ...")
             fig.rebuild(mute=mute, verilog_style=verilog_style)
 
+    def getTopLevels(self) -> Tuple[obj.Module, ...]:
+        count = defaultdict(int)
+        for module in self:
+            for inst in module.instances:
+                count[inst.reference.name] += 1
+        return tuple(module for module in self if count[module.name] == 0)
 
 class Reference(str):
     def __new__(cls, name: str, instance: Optional[obj.Instance] = None):
