@@ -1,4 +1,4 @@
-from ichier.obj import (
+from ichier.node import (
     Design,
     Module,
     ModuleCollection,
@@ -31,7 +31,7 @@ class TestFig:
 
     def test_create_instance(self):
         name = "instance"
-        i = Instance(name, "module")
+        i = Instance("module", name)
         assert i.name == name
         assert i.reference == "module"
         assert isinstance
