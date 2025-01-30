@@ -66,11 +66,15 @@ def parseSubckt(
             f"Invalid data at line {lineiter.line}:\n>>> {lineiter.last1}"
         )
 
-    # .SUBCKT <module_name> <term1> <term2> ...
+    # .SUBCKT <module_name> <term1> <term2> ... <key1=value1> <key2=value2> ...
     tokens = line.split()
     module_name = tokens[1]
     for term in tokens[2:]:
-        terminals[term] = Terminal(name=term)
+        if "=" in term:
+            k, v = term.split("=")
+            parameters[k] = v
+        else:
+            terminals[term] = Terminal(name=term)
 
     # 看看 term 定义是否完整
     for line in lineiter:

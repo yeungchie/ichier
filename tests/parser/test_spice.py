@@ -14,7 +14,6 @@ class TestSpiceParser:
         i1 / inv $PINS in=net1 out=out
         .ENDS
         """
-
         code = dedent(code)
         design = fromCode(code)
         assert isinstance(design.modules["buf"], Module)
@@ -28,3 +27,13 @@ class TestSpiceParser:
             "in": "net1",
             "out": "out",
         }
+
+    def test_subckt_parameter(self):
+        code = """\
+        .SUBCKT module in out a=1 b=2
+        .ENDS
+        """
+        code = dedent(code)
+        design = fromCode(code)
+        assert tuple(map(str, design.modules["module"].terminals)) == ("in", "out")
+        assert design.modules["module"].parameters == {"a": "1", "b": "2"}
