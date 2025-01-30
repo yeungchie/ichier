@@ -21,8 +21,8 @@ class EscapeString(str):
         s = str(value)
         if not needEscape(s):
             raise ValueError(f"String is not need to be escaped - {value!r}")
-        if not s.startswith("\\"):
-            s = "\\" + s
+        if s.startswith("\\"):
+            s = s[1:]
         return super().__new__(cls, s)
 
     def __repr__(self):
