@@ -2,7 +2,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import List, Optional, Union
 from pathlib import Path
-from multiprocessing import Pool
+from multiprocessing import Pool, get_start_method
 from queue import Queue
 import re
 import os
@@ -43,9 +43,11 @@ def fromCode(
             args_array.append((item, None, msg_queue))
 
     design = Design()
-    # designs = [worker(*args) for args in args_array]
-    with Pool() as pool:
-        designs = pool.starmap(worker, args_array)
+    if get_start_method() == "fork":
+        with Pool() as pool:
+            designs = pool.starmap(worker, args_array)
+    else:
+        designs = [worker(*args) for args in args_array]
     for d in designs:
         design.includeOtherDesign(d)
 

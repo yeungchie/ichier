@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
-from multiprocessing import Pool
+from multiprocessing import Pool, get_start_method
 from pathlib import Path
 from queue import Queue
 from typing import List, Optional, Union
@@ -37,9 +37,11 @@ def fromCode(
     args_array = []
     for item in parseInclude(code):
         args_array.append((item, path, msg_queue))
-    # designs = [worker(*args) for args in args_array]
-    with Pool() as pool:
-        designs = pool.starmap(worker, args_array)
+    if get_start_method() == "fork":
+        with Pool() as pool:
+            designs = pool.starmap(worker, args_array)
+    else:
+        designs = [worker(*args) for args in args_array]
     design = ichier.Design()
     for d in designs:
         design.includeOtherDesign(d)
@@ -102,7 +104,7 @@ def parseInclude(
                 )
             else:
                 raise SpiceIncludeError(
-                    f"Invalid include statement at line {i+1}:\n>>> {line}"
+                    f"Invalid include statement at line {i + 1}:\n>>> {line}"
                 )
     return queue
 
