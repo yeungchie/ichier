@@ -5,7 +5,13 @@ from ...node import Instance, DesignateReference
 
 
 class InstLexer(MetaLexer):
-    tokens = ["WORD", "PINS", "ASSIGN", "TASSIGN", "DESIGNATE"]
+    tokens = [
+        "WORD",
+        "PINS",
+        "ASSIGN",
+        "TASSIGN",
+        "DESIGNATE",
+    ]
 
     literals = "/"
 
@@ -14,23 +20,27 @@ class InstLexer(MetaLexer):
         if text is not None:
             self.input(text)
 
+    def t_PINS(self, t: LexToken):
+        r"\$PINS"
+        return t
+
+    def t_ASSIGN(self, t: LexToken):
+        r"\S+?=\S+"
+        arg, value = t.value.split("=")
+        t.value = (arg, value)
+        if arg.upper() == "$T":
+            t.type = "TASSIGN"
+        return t
+
+    def t_DESIGNATE(self, t: LexToken):
+        r"\$\[\S+\]"
+        t.value = t.value[2:-1]
+        return t
+
     def t_WORD(self, t: LexToken):
-        r"[^\s/]+"
-        # r"\S+"
-        if t.value.upper() == "$PINS":
-            t.type = "PINS"
-        # elif t.value == "/":
-        #     t.type = "/"
-        elif "=" in t.value:
-            arg, _, value = t.value.partition("=")
-            if arg.upper() == "$T":
-                t.type = "TASSIGN"
-            else:
-                t.type = "ASSIGN"
-            t.value = (arg, value)
-        elif t.value.startswith("$[") and t.value.endswith("]"):
-            t.type = "DESIGNATE"
-            t.value = t.value[2:-1]
+        r"\S+"
+        if t.value == "/":
+            t.type = "/"
         return t
 
 
