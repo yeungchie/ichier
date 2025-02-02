@@ -10,24 +10,24 @@ class TestSyntax:
         lexer = InstLexer()
         lexer.input("X0 net1 net2 net3 net4 nch m=1 length=4u width=10u")
         assert tuple(map(expand_token, lexer)) == (
-            ("WORD", "X0"),
-            ("WORD", "net1"),
-            ("WORD", "net2"),
-            ("WORD", "net3"),
-            ("WORD", "net4"),
-            ("WORD", "nch"),
+            ("X", "X0"),
+            ("ID", "net1"),
+            ("ID", "net2"),
+            ("ID", "net3"),
+            ("ID", "net4"),
+            ("ID", "nch"),
             ("ASSIGN", ("m", "1")),
             ("ASSIGN", ("length", "4u")),
             ("ASSIGN", ("width", "10u")),
         )
         lexer.input("X0 net1 net2 net3 net4 nch")
         assert tuple(map(expand_token, lexer)) == (
-            ("WORD", "X0"),
-            ("WORD", "net1"),
-            ("WORD", "net2"),
-            ("WORD", "net3"),
-            ("WORD", "net4"),
-            ("WORD", "nch"),
+            ("X", "X0"),
+            ("ID", "net1"),
+            ("ID", "net2"),
+            ("ID", "net3"),
+            ("ID", "net4"),
+            ("ID", "nch"),
         )
         inst = parse("X0 net1 net2 net3 net4 nch m=1 length=4u width=10u")
         assert inst.name == "X0"
@@ -39,26 +39,26 @@ class TestSyntax:
         lexer = InstLexer()
         lexer.input("X0 net1 net2 net3 net4 / nch m=1 length=4u width=10u")
         assert tuple(map(expand_token, lexer)) == (
-            ("WORD", "X0"),
-            ("WORD", "net1"),
-            ("WORD", "net2"),
-            ("WORD", "net3"),
-            ("WORD", "net4"),
+            ("X", "X0"),
+            ("ID", "net1"),
+            ("ID", "net2"),
+            ("ID", "net3"),
+            ("ID", "net4"),
             ("/", "/"),
-            ("WORD", "nch"),
+            ("ID", "nch"),
             ("ASSIGN", ("m", "1")),
             ("ASSIGN", ("length", "4u")),
             ("ASSIGN", ("width", "10u")),
         )
         lexer.input("X0 net1 net2 net3 net4 / nch")
         assert tuple(map(expand_token, lexer)) == (
-            ("WORD", "X0"),
-            ("WORD", "net1"),
-            ("WORD", "net2"),
-            ("WORD", "net3"),
-            ("WORD", "net4"),
+            ("X", "X0"),
+            ("ID", "net1"),
+            ("ID", "net2"),
+            ("ID", "net3"),
+            ("ID", "net4"),
             ("/", "/"),
-            ("WORD", "nch"),
+            ("ID", "nch"),
         )
         inst = parse("X0 net1 net2 net3 net4 / nch m=1 length=4u width=10u")
         assert inst.name == "X0"
@@ -70,9 +70,9 @@ class TestSyntax:
         lexer = InstLexer()
         lexer.input("X0 / nch $PINS pin1=net1 pin2=net2 pin3=net3 pin4=net4")
         assert tuple(map(expand_token, lexer)) == (
-            ("WORD", "X0"),
+            ("X", "X0"),
             ("/", "/"),
-            ("WORD", "nch"),
+            ("ID", "nch"),
             ("PINS", "$PINS"),
             ("ASSIGN", ("pin1", "net1")),
             ("ASSIGN", ("pin2", "net2")),
@@ -81,8 +81,8 @@ class TestSyntax:
         )
         lexer.input("X0 nch $PINS pin1=net1 pin2=net2 pin3=net3 pin4=net4")
         assert tuple(map(expand_token, lexer)) == (
-            ("WORD", "X0"),
-            ("WORD", "nch"),
+            ("X", "X0"),
+            ("ID", "nch"),
             ("PINS", "$PINS"),
             ("ASSIGN", ("pin1", "net1")),
             ("ASSIGN", ("pin2", "net2")),
@@ -104,19 +104,19 @@ class TestSyntax:
 
         lexer.input("R0 net1 net2 1.2 $[res]")
         assert tuple(map(expand_token, lexer)) == (
-            ("WORD", "R0"),
-            ("WORD", "net1"),
-            ("WORD", "net2"),
-            ("WORD", "1.2"),
+            ("R", "R0"),
+            ("ID", "net1"),
+            ("ID", "net2"),
+            ("ID", "1.2"),
             ("DESIGNATE", "res"),
         )
 
         lexer.input("R0 net1 net2 1.2 $[res] w=1 l=2")
         assert tuple(map(expand_token, lexer)) == (
-            ("WORD", "R0"),
-            ("WORD", "net1"),
-            ("WORD", "net2"),
-            ("WORD", "1.2"),
+            ("R", "R0"),
+            ("ID", "net1"),
+            ("ID", "net2"),
+            ("ID", "1.2"),
             ("DESIGNATE", "res"),
             ("ASSIGN", ("w", "1")),
             ("ASSIGN", ("l", "2")),
@@ -124,10 +124,10 @@ class TestSyntax:
 
         lexer.input("C0 net1 net2 1.2 $[cap] w=1 l=2")
         assert tuple(map(expand_token, lexer)) == (
-            ("WORD", "C0"),
-            ("WORD", "net1"),
-            ("WORD", "net2"),
-            ("WORD", "1.2"),
+            ("C", "C0"),
+            ("ID", "net1"),
+            ("ID", "net2"),
+            ("ID", "1.2"),
             ("DESIGNATE", "cap"),
             ("ASSIGN", ("w", "1")),
             ("ASSIGN", ("l", "2")),
@@ -135,10 +135,10 @@ class TestSyntax:
 
         lexer.input("C0 net1 net2 1.2 w=1 l=2 $SUB=3 $[cap] $X=1 $Y=2 $D=3")
         assert tuple(map(expand_token, lexer)) == (
-            ("WORD", "C0"),
-            ("WORD", "net1"),
-            ("WORD", "net2"),
-            ("WORD", "1.2"),
+            ("C", "C0"),
+            ("ID", "net1"),
+            ("ID", "net2"),
+            ("ID", "1.2"),
             ("ASSIGN", ("w", "1")),
             ("ASSIGN", ("l", "2")),
             ("ASSIGN", ("$SUB", "3")),
@@ -150,11 +150,11 @@ class TestSyntax:
 
         lexer.input("Q0 net1 net2 net3 1.2 $[pnp] $X=1 $Y=2 $D=3")
         assert tuple(map(expand_token, lexer)) == (
-            ("WORD", "Q0"),
-            ("WORD", "net1"),
-            ("WORD", "net2"),
-            ("WORD", "net3"),
-            ("WORD", "1.2"),
+            ("Q", "Q0"),
+            ("ID", "net1"),
+            ("ID", "net2"),
+            ("ID", "net3"),
+            ("ID", "1.2"),
             ("DESIGNATE", "pnp"),
             ("ASSIGN", ("$X", "1")),
             ("ASSIGN", ("$Y", "2")),

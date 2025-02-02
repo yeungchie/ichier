@@ -6,11 +6,18 @@ from ...node import Instance, DesignateReference
 
 class InstLexer(MetaLexer):
     tokens = [
-        "WORD",
-        "PINS",
         "ASSIGN",
         "TASSIGN",
+        "PINS",
         "DESIGNATE",
+        "C",  # cap
+        "D",  # diode
+        "I",  # inductor
+        "Q",  # bjt
+        "R",  # resistor
+        "M",  # mosfet
+        "X",  # subcircuit
+        "ID",
     ]
 
     literals = "/"
@@ -20,10 +27,6 @@ class InstLexer(MetaLexer):
         if text is not None:
             self.input(text)
 
-    def t_PINS(self, t: LexToken):
-        r"\$PINS"
-        return t
-
     def t_ASSIGN(self, t: LexToken):
         r"\S+?=\S+"
         arg, value = t.value.split("=")
@@ -32,12 +35,44 @@ class InstLexer(MetaLexer):
             t.type = "TASSIGN"
         return t
 
+    def t_PINS(self, t: LexToken):
+        r"\$PINS"
+        return t
+
     def t_DESIGNATE(self, t: LexToken):
         r"\$\[\S+\]"
         t.value = t.value[2:-1]
         return t
 
-    def t_WORD(self, t: LexToken):
+    def t_C(self, t: LexToken):
+        r"C\S+"
+        return t
+
+    def t_D(self, t: LexToken):
+        r"D\S+"
+        return t
+
+    def t_I(self, t: LexToken):
+        r"I\S+"
+        return t
+
+    def t_Q(self, t: LexToken):
+        r"Q\S+"
+        return t
+
+    def t_R(self, t: LexToken):
+        r"R\S+"
+        return t
+
+    def t_M(self, t: LexToken):
+        r"M\S+"
+        return t
+
+    def t_X(self, t: LexToken):
+        r"X\S+"
+        return t
+
+    def t_ID(self, t: LexToken):
         r"\S+"
         if t.value == "/":
             t.type = "/"
@@ -90,8 +125,8 @@ class InstParser:
 
     def p_syntax2(self, p):
         """
-        syntax2  :  words  "/"  WORD  assigns
-                 |  words  "/"  WORD
+        syntax2  :  words  "/"  word  assigns
+                 |  words  "/"  word
         """
         # X0 net1 net2 net3 net4 / nch m=1 length=4u width=10u
         # X0 net1 net2 net3 net4 / nch
@@ -110,7 +145,7 @@ class InstParser:
 
     def p_syntax3(self, p):
         """
-        syntax3  :  WORD  "/"  WORD  PINS  assigns
+        syntax3  :  word  "/"  word  PINS  assigns
                  |  words  PINS  assigns
         """
         # X0 / nch $PINS pin1=net1 pin2=net2 pin3=net3 pin4=net4
@@ -171,10 +206,23 @@ class InstParser:
             orderparams=oparams,
         )
 
+    def p_word(self, p):
+        """
+        word  :  ID
+              |  C
+              |  D
+              |  I
+              |  Q
+              |  R
+              |  M
+              |  X
+        """
+        p[0] = p[1]
+
     def p_words(self, p):
         """
-        words  :  words  WORD
-               |  WORD
+        words  :  words  word
+               |  word
         """
         if len(p) == 3:
             p[0] = p[1] + [p[2]]
@@ -204,7 +252,7 @@ class InstParser:
 
     def p_tassign_pair(self, p):
         """
-        tassign_pair  :  TASSIGN  WORD  WORD  WORD
+        tassign_pair  :  TASSIGN  word  word  word
         """
         # $T=0 0 0 0
         k, v = p[1]
