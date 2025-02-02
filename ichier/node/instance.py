@@ -26,6 +26,7 @@ class Instance(Fig):
         ] = None,
         parameters: Optional[Dict[str, Any]] = None,
         orderparams: Optional[Sequence[str]] = None,
+        raw: Optional[str] = None,
     ) -> None:
         super().__init__(name)
         self.reference = reference
@@ -35,6 +36,7 @@ class Instance(Fig):
         self.connection = connection
         self.__parameters = obj.ParameterCollection(parameters)
         self.__orderparams = obj.OrderParameters(orderparams)
+        self.__raw = raw
         self.collection: obj.InstanceCollection
 
     @property
@@ -113,6 +115,14 @@ class Instance(Fig):
     @property
     def orderparams(self) -> obj.OrderParameters:
         return self.__orderparams
+
+    @property
+    def raw(self) -> Optional[str]:
+        return self.__raw
+
+    @raw.setter
+    def raw(self, value: Optional[str]) -> None:
+        self.__raw = value
 
     def __getitem__(self, key: str) -> Any:
         return self.parameters[key]
