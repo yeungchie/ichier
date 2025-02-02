@@ -6,7 +6,7 @@ check:
 	$(PY) -m ruff check ./ichier
 
 tests:
-	$(PY) -m pytest -v ./tests
+	$(PY) -m pytest
 
 clean:
 	make uninstall
