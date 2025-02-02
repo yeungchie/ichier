@@ -163,15 +163,17 @@ def parseSubcktInstance(
 ) -> Tuple[Instance, list]:
     if parser is None:
         parser = InstParser()
-    code = lineiter.next
+    raw_lines = [code := lineiter.next]
     for line in lineiter:
         if line.startswith("+"):
+            raw_lines.append(line)
             code += " " + line[1:]
         else:
             lineiter.revert()
             break
     try:
         inst = parser.parse(code)
+        inst.raw = "\n".join(raw_lines)
     except SyntaxError as e:
         raise SpiceInstanceError(
             f"{e}\nInvalid instance definition at line {lineiter.line}:\n>>> {code}"
