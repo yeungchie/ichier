@@ -10,20 +10,20 @@ class TestSpiceParser:
         $ This is a dollar comment
         .SUBCKT buf in out
         $ This is another dollar comment
-        i0 / inv $PINS in=in out=net1
-        i1 / inv $PINS in=net1 out=out
+        X0 / inv $PINS in=in out=net1
+        X1 / inv $PINS in=net1 out=out
         .ENDS
         """
         code = dedent(code)
         design = fromCode(code)
         assert isinstance(design.modules["buf"], Module)
-        assert design.modules["buf"].instances["i0"].reference == "inv"
-        assert design.modules["buf"].instances["i1"].reference == "inv"
-        assert design.modules["buf"].instances["i0"].connection == {
+        assert design.modules["buf"].instances["X0"].reference == "inv"
+        assert design.modules["buf"].instances["X1"].reference == "inv"
+        assert design.modules["buf"].instances["X0"].connection == {
             "in": "in",
             "out": "net1",
         }
-        assert design.modules["buf"].instances["i1"].connection == {
+        assert design.modules["buf"].instances["X1"].connection == {
             "in": "net1",
             "out": "out",
         }
