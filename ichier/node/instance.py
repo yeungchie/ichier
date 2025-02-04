@@ -232,7 +232,11 @@ class Instance(Fig):
             raise TypeError("connection must be dict, list or tuple.")
 
     def dumpToSpice(self, *, width_limit: int = 88) -> str:
-        tokens = [self.name]
+        if m := self.getModule():
+            prefix = m.config.get("spice_name_prefix", "X")
+        else:
+            prefix = "X"
+        tokens = [prefix + self.name]
         if isinstance(self.reference, obj.DesignateReference):
             if isinstance(self.connection, dict):
                 for net in self.connection.values():
