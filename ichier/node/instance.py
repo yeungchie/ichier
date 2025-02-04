@@ -17,7 +17,7 @@ __all__ = [
 class Instance(Fig):
     def __init__(
         self,
-        reference: str,
+        reference: Optional[str],
         name: Optional[str] = None,
         connection: Union[
             None,
@@ -27,6 +27,7 @@ class Instance(Fig):
         parameters: Optional[Dict[str, Any]] = None,
         orderparams: Optional[Sequence[str]] = None,
         raw: Optional[str] = None,
+        error: Any = None,
     ) -> None:
         super().__init__(name)
         self.reference = reference
@@ -37,19 +38,21 @@ class Instance(Fig):
         self.__parameters = obj.ParameterCollection(parameters)
         self.__orderparams = obj.OrderParameters(orderparams)
         self.__raw = raw
+        self.error = error
         self.collection: obj.InstanceCollection
 
     @property
-    def reference(self) -> obj.Reference:
+    def reference(self) -> Union[obj.Reference, obj.Unknown]:
         return self.__reference
 
     @reference.setter
-    def reference(self, value: str) -> None:
-        if isinstance(value, obj.DesignateReference):
-            ref_cls = obj.DesignateReference
+    def reference(self, value: Optional[str]) -> None:
+        if value is None:
+            self.__reference = obj.Unknown(instance=self)
+        elif isinstance(value, obj.DesignateReference):
+            self.__reference = obj.DesignateReference(value, instance=self)
         else:
-            ref_cls = obj.Reference
-        self.__reference = ref_cls(value, instance=self)
+            self.__reference = obj.Reference(value, instance=self)
 
     @property
     def connection(
@@ -141,6 +144,10 @@ class Instance(Fig):
         verilog_style: bool = False,
     ) -> None:
         """Rebuild connection"""
+        if isinstance(self.reference, obj.Unknown):
+            # 跳过 Unknown reference，可能是解析失败的实例
+            return
+
         logger = getLogger(__name__, mute=mute)
         if reference is None and self.collection is not None:
             if isinstance(module := self.collection.parent, obj.Module):
@@ -232,6 +239,11 @@ class Instance(Fig):
             raise TypeError("connection must be dict, list or tuple.")
 
     def dumpToSpice(self, *, width_limit: int = 88) -> str:
+        if isinstance(self.reference, obj.Unknown):
+            if self.raw is None:
+                raise ValueError("raw must be set when reference is unknown")
+            else:
+                return self.raw
         if m := self.getModule():
             prefix = m.config.get("spice_name_prefix", "X")
         else:
@@ -281,14 +293,18 @@ class InstanceCollection(FigCollection):
         return super().get(*args, **kwargs)
 
     def summary(self) -> Dict[str, Any]:
+        unknown = 0
         cate = {}
-        for fig in self.figs:
-            fig: Instance
-            cate.setdefault(fig.reference, 0)
-            cate[fig.reference] += 1
+        for fig in self:
+            if isinstance(fig.reference, obj.Unknown):
+                unknown += 1
+            else:
+                cate.setdefault(fig.reference, 0)
+                cate[fig.reference] += 1
         return {
             "total": len(self),
             "categories": cate,
+            "unknown": unknown,
         }
 
     def rebuild(

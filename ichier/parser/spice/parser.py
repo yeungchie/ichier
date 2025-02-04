@@ -171,13 +171,20 @@ def parseSubcktInstance(
         else:
             lineiter.revert()
             break
+    raw = "\n".join(raw_lines)
     try:
         inst = parser.parse(code)
-        inst.raw = "\n".join(raw_lines)
+        inst.raw = raw
     except SyntaxError as e:
-        raise SpiceInstanceError(
-            f"{e}\nInvalid instance definition at line {lineiter.line}:\n>>> {code}"
+        inst = Instance(
+            reference=None,
+            name=code.split()[0],
+            raw=raw,
+            error=e,
         )
+        # raise SpiceInstanceError(
+        #     f"{e}\nInvalid instance definition at line {lineiter.line}:\n>>> {code}"
+        # )
     if isinstance(inst.connection, dict):
         net_names = list(inst.connection.values())
     else:

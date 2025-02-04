@@ -25,6 +25,7 @@ __all__ = [
     "ModuleCollection",
     "Reference",
     "DesignateReference",
+    "Unknown",
 ]
 
 
@@ -343,3 +344,28 @@ class Reference(str):
 class DesignateReference(Reference):
     def getMaster(self) -> None:
         raise NotImplementedError("Designate reference do not have master")
+
+
+class Unknown:
+    def __init__(self, instance: Optional[obj.Instance] = None) -> None:
+        if instance is not None and not isinstance(instance, obj.Instance):
+            raise TypeError("instance must be an Instance")
+        self.__instance = instance
+
+    def __repr__(self) -> str:
+        return self.name
+
+    @property
+    def type(self) -> str:
+        return self.__class__.__name__
+
+    @property
+    def name(self) -> str:
+        return self.type
+
+    @property
+    def instance(self) -> Optional[obj.Instance]:
+        return self.__instance
+
+    def getMaster(self) -> None:
+        raise NotImplementedError("Unknown reference do not have master")
