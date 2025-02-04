@@ -1,12 +1,45 @@
-from pathlib import Path
-from ichier.parser import fromVerilog
-
-verilog = Path(__file__).parent.parent.parent / "tmp" / "netlist" / "buf.v"
+from ichier.parser import fromVerilogCode
 
 
 class TestMakeModule:
     def test_make_module(self):
-        design = fromVerilog(verilog)
+        code = """\
+        module inv (in, out);
+        input       in;
+        output      out;
+        endmodule
+
+
+        module buf (in, out);
+        input       in;
+        output      out;
+        wire        net;
+
+        inv i0 (.in(in), .out(net));
+        inv i1 (.in(net), .out(out));
+        endmodule
+
+
+        module buf2 (in, out);
+        input           in;
+        output  [1:0]   out;
+
+        buf b0 (.in(in), .out(out[0]));
+        buf b1 (.in(in), .out(out[1]));
+        endmodule
+
+
+        module buf4 (in, out);
+        input           in;
+        output  [3:0]   out;
+
+        buf b0 (.in(in), .out(out[0]));
+        buf b1 (.in(in), .out(out[1]));
+        buf b2 (.in(in), .out(out[2]));
+        buf b3 (.in(in), .out(out[3]));
+        endmodule
+        """
+        design = fromVerilogCode(code)
         buf4 = design.modules["buf4"]
         buf3 = buf4.makeModule("buf3", instances=["b0", "b1", "b2"])
         assert buf3.name == "buf3"

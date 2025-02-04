@@ -1,4 +1,4 @@
-from ichier.obj import (
+from ichier.node import (
     Design,
     Module,
     ModuleCollection,
@@ -43,8 +43,8 @@ class TestBuf:
                     ],
                     instances=[
                         Instance(
-                            name="i1",
                             reference="inv",
+                            name="i1",
                             connection={
                                 "A": "A",
                                 "Z": "Z",
@@ -52,8 +52,8 @@ class TestBuf:
                             parameters={"size": "x2"},
                         ),
                         Instance(
-                            name="i2",
                             reference="inv",
+                            name="i2",
                             connection={
                                 "A": "Z",
                                 "Z": "A",

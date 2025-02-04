@@ -66,11 +66,15 @@ def parseSubckt(
             f"Invalid data at line {lineiter.line}:\n>>> {lineiter.last1}"
         )
 
-    # .SUBCKT <module_name> <term1> <term2> ...
+    # .SUBCKT <module_name> <term1> <term2> ... <key1=value1> <key2=value2> ...
     tokens = line.split()
     module_name = tokens[1]
     for term in tokens[2:]:
-        terminals[term] = Terminal(name=term)
+        if "=" in term:
+            k, v = term.split("=")
+            parameters[k] = v
+        else:
+            terminals[term] = Terminal(name=term)
 
     # 看看 term 定义是否完整
     for line in lineiter:
@@ -159,19 +163,28 @@ def parseSubcktInstance(
 ) -> Tuple[Instance, list]:
     if parser is None:
         parser = InstParser()
-    code = lineiter.next
+    raw_lines = [code := lineiter.next]
     for line in lineiter:
         if line.startswith("+"):
+            raw_lines.append(line)
             code += " " + line[1:]
         else:
             lineiter.revert()
             break
+    raw = "\n".join(raw_lines)
     try:
         inst = parser.parse(code)
+        inst.raw = raw
     except SyntaxError as e:
-        raise SpiceInstanceError(
-            f"{e}\nInvalid instance definition at line {lineiter.line}:\n>>> {code}"
+        inst = Instance(
+            reference=None,
+            name=code.split()[0],
+            raw=raw,
+            error=e,
         )
+        # raise SpiceInstanceError(
+        #     f"{e}\nInvalid instance definition at line {lineiter.line}:\n>>> {code}"
+        # )
     if isinstance(inst.connection, dict):
         net_names = list(inst.connection.values())
     else:

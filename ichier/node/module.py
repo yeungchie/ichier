@@ -25,6 +25,7 @@ __all__ = [
     "ModuleCollection",
     "Reference",
     "DesignateReference",
+    "Unknown",
 ]
 
 
@@ -37,6 +38,7 @@ class Module(Fig):
         instances: Iterable[obj.Instance] = (),
         parameters: Optional[Dict[str, Any]] = None,
         specparams: Optional[Dict[str, Any]] = None,
+        config: Optional[Dict[str, Any]] = None,
     ) -> None:
         super().__init__(name)
         self.__terminals = obj.TerminalCollection(self, terminals)
@@ -44,6 +46,14 @@ class Module(Fig):
         self.__instances = obj.InstanceCollection(self, instances)
         self.__parameters = obj.ParameterCollection(parameters)
         self.__specparams = obj.SpecifyParameters(specparams)
+
+        self.__config = {
+            "spice_name_prefix": "X",
+        }
+        if config is None:
+            config = {}
+        self.__config.update(config)
+
         self.__lienno = None
         self.__path = None
 
@@ -66,6 +76,10 @@ class Module(Fig):
     @property
     def specparams(self) -> obj.SpecifyParameters:
         return self.__specparams
+
+    @property
+    def config(self) -> Dict[str, Any]:
+        return self.__config
 
     @property
     def lineno(self) -> Optional[int]:
@@ -289,6 +303,7 @@ class ModuleCollection(FigCollection):
                 count[inst.reference.name] += 1
         return tuple(module for module in self if count[module.name] == 0)
 
+
 class Reference(str):
     def __new__(cls, name: str, instance: Optional[obj.Instance] = None):
         return super().__new__(cls, name)
@@ -329,3 +344,28 @@ class Reference(str):
 class DesignateReference(Reference):
     def getMaster(self) -> None:
         raise NotImplementedError("Designate reference do not have master")
+
+
+class Unknown:
+    def __init__(self, instance: Optional[obj.Instance] = None) -> None:
+        if instance is not None and not isinstance(instance, obj.Instance):
+            raise TypeError("instance must be an Instance")
+        self.__instance = instance
+
+    def __repr__(self) -> str:
+        return self.name
+
+    @property
+    def type(self) -> str:
+        return self.__class__.__name__
+
+    @property
+    def name(self) -> str:
+        return self.type
+
+    @property
+    def instance(self) -> Optional[obj.Instance]:
+        return self.__instance
+
+    def getMaster(self) -> None:
+        raise NotImplementedError("Unknown reference do not have master")
