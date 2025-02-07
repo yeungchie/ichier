@@ -5,6 +5,7 @@ from icutk.log import getLogger
 
 from . import obj
 from .fig import Fig, FigCollection
+from .trace import traceByNet, Route
 from ..utils import bitInfoSplit
 
 __all__ = [
@@ -31,6 +32,9 @@ class Net(Fig):
 
     def split(self) -> Tuple[str, Optional[int]]:
         return bitInfoSplit(self.name)
+
+    def trace(self, depth: int = -1) -> Route:
+        return traceByNet(self, depth=depth)
 
 
 class NetCollection(FigCollection):

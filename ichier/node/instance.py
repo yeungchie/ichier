@@ -1,11 +1,17 @@
 from __future__ import annotations
-from typing import Any, Dict, Iterator, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Iterator, Optional, Sequence, Tuple, Union, overload
 from textwrap import wrap
 
 from icutk.log import getLogger
 
 from . import obj
 from .fig import Fig, FigCollection
+from .trace import (
+    traceByInstTermName,
+    traceByInstTermOrder,
+    ConnectByName,
+    ConnectByOrder,
+)
 from ..utils import flattenSequence, expandTermNetPairs
 
 __all__ = [
@@ -135,6 +141,24 @@ class Instance(Fig):
 
     def __delitem__(self, key: str) -> None:
         del self.parameters[key]
+
+    @overload
+    def trace(self, according: str, depth: int = -1) -> ConnectByName: ...
+    @overload
+    def trace(self, according: int, depth: int = -1) -> ConnectByOrder: ...
+    def trace(self, according: Union[str, int], depth: int = -1):
+        if isinstance(self.connection, dict):
+            if not isinstance(according, str):
+                raise ValueError(
+                    f"this instance connection is a dict, the according should be a string - {according!r}"
+                )
+            return traceByInstTermName(self, according, depth=depth)
+        elif isinstance(self.connection, tuple):
+            if not isinstance(according, int):
+                raise ValueError(
+                    f"this instance connection is a tuple, the according should be an integer - {according!r}"
+                )
+            return traceByInstTermOrder(self, according, depth=depth)
 
     def rebuild(
         self,

@@ -3,6 +3,7 @@ from typing import Any, Dict, Iterator, Optional, Literal, Tuple, Union
 
 from .fig import Fig, FigCollection
 from .net import bitInfoSplit
+from .trace import traceByNet, Route
 
 __all__ = [
     "Terminal",
@@ -34,6 +35,12 @@ class Terminal(Fig):
 
     def split(self) -> Tuple[str, Optional[int]]:
         return bitInfoSplit(self.name)
+
+    def trace(self, depth: int = -1) -> Route:
+        module = self.getModule()
+        if module is None:
+            raise ValueError("unbound terminal cannot trace")
+        return traceByNet(module.nets[self.name], depth=depth)
 
 
 class TerminalCollection(FigCollection):
