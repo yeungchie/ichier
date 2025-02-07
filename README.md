@@ -16,7 +16,13 @@
 ## 安装
 
 ```bash
-pip install ichier -U
+pip install ichier
+```
+
+推荐再安装 `ipython` 和 `rich` 库。
+
+```bash
+pip install ipython rich
 ```
 
 ## 描述一个电路
