@@ -221,12 +221,14 @@ class FigCollection(Collection):
         self.extend(figs)
 
     def __repr__(self) -> str:
-        s = f"{self.__class__.__name__}: {len(self)} figs\n"
-        if len(self) <= 6:
-            s += repr(tuple(self.values()))
+        s = f"{self.__class__.__name__}: {len(self)} figs"
+        if not self:
+            pass
+        elif len(self) <= 6:
+            s += f"\n{tuple(self.values())!r}"
         else:
             queue = [repr(x) for x in self.values()]
-            s += "(" + ",\n ".join(queue[:4] + ["..."] + queue[-2:]) + ")"
+            s += "\n(" + ",\n ".join(queue[:4] + ["..."] + queue[-2:]) + ")"
         return s
 
     @property
