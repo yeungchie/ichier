@@ -73,13 +73,28 @@ def worker(
     return design
 
 
-def removeComments(code: str) -> str:
-    return re.sub(
-        r"/\*.*?\*/",
-        lambda m: "\n" * m.group().count("\n"),
-        code,
-        flags=re.DOTALL,
-    )
+class PreProc:
+    @staticmethod
+    def process(code: str) -> str:
+        return PreProc.removeAloneWires(PreProc.removeComments(code))
+
+    @staticmethod
+    def removeComments(code: str) -> str:
+        return re.sub(
+            r"/\*.*?\*/",
+            lambda m: "\n" * m.group().count("\n"),
+            code,
+            flags=re.DOTALL,
+        )
+
+    @staticmethod
+    def removeAloneWires(code: str) -> str:
+        return re.sub(
+            r"wire\s++[^[].*?;",
+            lambda m: "\n" * m.group().count("\n"),
+            code,
+            flags=re.DOTALL,
+        )
 
 
 def parseInclude(
@@ -87,22 +102,34 @@ def parseInclude(
     *,
     queue: Optional[list] = None,
     priority: tuple = (),
+    preprocessed: bool = False,
 ) -> List[Union[CodeItem, FileItem]]:
     if queue is None:
         queue = []
     if priority is None:
         priority = ()
+    if not preprocessed:
+        code = PreProc.process(code)
     if not priority:
-        queue.append(CodeItem(priority=priority, code=code))
-    for i, line in enumerate(removeComments(code).splitlines()):
+        queue.append(
+            CodeItem(
+                priority=priority,
+                code=code,
+                removed_comments=True,
+                removed_alone_wires=True,
+            )
+        )
+    for i, line in enumerate(code.splitlines()):
         if m := re.match(r'`include "([^"\s]+)"', line):
             file_priority = priority + (i + 1,)
             path = Path(os.path.expandvars(m.group(1))).expanduser()
-            queue.append(FileItem(priority=file_priority, path=path, code=""))
+            code = PreProc.process(path.read_text(encoding="utf-8"))
+            queue.append(FileItem(priority=file_priority, path=path, code=code))
             parseInclude(
-                code=path.read_text(encoding="utf-8"),
+                code=code,
                 queue=queue,
                 priority=file_priority,
+                preprocessed=True,
             )
     return queue
 
@@ -110,7 +137,16 @@ def parseInclude(
 @dataclass
 class CodeItem:
     priority: tuple
-    code: str = field(repr=False)
+    code: str = field(repr=False, default_factory=str)
+    removed_comments: bool = False
+    removed_alone_wires: bool = False
+
+    def __post_init__(self):
+        if self.code != "":
+            if not self.removed_comments:
+                self.code = PreProc.removeComments(self.code)
+            if not self.removed_alone_wires:
+                self.code = PreProc.removeAloneWires(self.code)
 
     def load(
         self,
@@ -129,7 +165,18 @@ class CodeItem:
 class FileItem:
     priority: tuple
     path: Path
-    code: str = field(repr=False)
+    code: str = field(repr=False, default_factory=str)
+    removed_comments: bool = False
+    removed_alone_wires: bool = False
+
+    def __post_init__(self):
+        if self.code == "":
+            self.code = self.path.read_text(encoding="utf-8")
+        if self.code != "":
+            if not self.removed_comments:
+                self.code = PreProc.removeComments(self.code)
+            if not self.removed_alone_wires:
+                self.code = PreProc.removeAloneWires(self.code)
 
     def load(
         self,
@@ -138,5 +185,7 @@ class FileItem:
         path = Path(self.path)
         return CodeItem(
             priority=self.priority,
-            code=path.read_text(encoding="utf-8"),
+            code=self.code,
+            removed_comments=self.removed_comments,
+            removed_alone_wires=self.removed_alone_wires,
         ).load(path=path, msg_queue=msg_queue)
