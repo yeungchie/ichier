@@ -72,6 +72,8 @@ class NetCollection(FigCollection):
 
         # instances
         for inst in module.instances:
+            if isinstance(inst.reference, obj.Unknown):
+                continue  # 跳过 Unknown reference，可能是解析失败的实例
             connection = inst.connection
             if isinstance(connection, dict):
                 for net in connection.values():
