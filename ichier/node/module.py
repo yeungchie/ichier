@@ -136,12 +136,12 @@ class Module(Fig):
         self.instances.rebuild(mute=mute, verilog_style=verilog_style)
         self.nets.rebuild(mute=mute)
 
-    def makeModule(
+    def pack(
         self,
         name: str,
         instances: Iterable[Union[str, obj.Instance]],
         to_design: Optional[obj.Design] = None,
-    ) -> "Module":
+    ) -> Module:
         """Create a new module with the given instances.
 
         Parameters :
