@@ -48,7 +48,7 @@ class Instance(Fig):
         self.collection: obj.InstanceCollection
 
     @property
-    def reference(self) -> Union[obj.Reference, obj.Unknown]:
+    def reference(self) -> Union[obj.Reference, obj.DesignateReference, obj.Unknown]:
         return self.__reference
 
     @reference.setter
@@ -163,30 +163,29 @@ class Instance(Fig):
     def rebuild(
         self,
         *,
-        reference: Optional[obj.Module] = None,
+        master: Optional[obj.Module] = None,
         mute: bool = False,
         verilog_style: bool = False,
     ) -> None:
         """Rebuild connection"""
-        if isinstance(self.reference, obj.Unknown):
-            # 跳过 Unknown reference，可能是解析失败的实例
-            return
-
         logger = getLogger(__name__, mute=mute)
-        if reference is None and self.collection is not None:
-            if isinstance(module := self.collection.parent, obj.Module):
-                if isinstance(modules := module.collection, obj.ModuleCollection):
-                    reference = modules.get(self.reference)
-        else:
-            module = None
+        if isinstance(self.reference, obj.Unknown):
+            logger.warning(f"Unknown instance '{self.name}' reference, ignore rebuild.")
+            return  # 跳过 Unknown reference，可能是解析失败的实例
 
-        if not isinstance(reference, obj.Module):
-            reference = None
-
+        module = self.getModule()
         mod_name = "(NONE)" if module is None else module.name
+
+        if master is None:
+            try:
+                master = self.reference.getMaster()
+            except NotImplementedError:
+                pass
+
         ref_name = self.reference.name
-        if reference is None:
+        if master is None:
             ref_name += "(MISS)"
+
         logger.info(
             f"Rebuilding module {mod_name!r} instance '{ref_name}:{self.name}' ..."
         )
@@ -195,8 +194,9 @@ class Instance(Fig):
             connect = {}
             for term, net_desc in self.connection.items():
                 if isinstance(net_desc, str):  # 一对一连接
-                    if reference:
-                        if reference.terminals.get(term) is not None:
+                    if master:
+                        # 有 master 参考
+                        if master.terminals.get(term) is not None:
                             connect[term] = net_desc
                         else:
                             # 找不到对应 terminal
@@ -206,10 +206,8 @@ class Instance(Fig):
                                 and net_desc.isidentifier()
                             ):
                                 # 参考 Verilog 语法风格，且连接描述的可能是总线连接
-                                if terms := reference.terminals.find(rf"{term}\[\d+\]"):
-                                    if nets := reference.nets.find(
-                                        rf"{net_desc}\[\d+\]"
-                                    ):
+                                if terms := master.terminals.find(rf"{term}\[\d+\]"):
+                                    if nets := master.nets.find(rf"{net_desc}\[\d+\]"):
                                         # 模块内已有 net 参考
                                         connect.update(expandTermNetPairs(terms, nets))
                                     else:
@@ -219,21 +217,41 @@ class Instance(Fig):
                                         )
                                 else:
                                     raise ValueError(
-                                        f"term '{term!s}[\\d+]' not found in module {reference.name!r}"
+                                        f"term '{term!s}[\\d+]' not found in module {master.name!r}"
                                     )
                             else:
                                 # 不是参考 Verilog 语法风格，或者连接描述无法拓展为总线连接
                                 raise ValueError(
-                                    f"term {term!r} not found in module {reference.name!r}"
+                                    f"term {term!r} not found in module {master.name!r}"
                                 )
                     else:
-                        connect[term] = net_desc
+                        # 没有 master 参考
+                        if (
+                            verilog_style
+                            and term.isidentifier()
+                            and net_desc.isidentifier()
+                        ):
+                            if module is None:
+                                # 不属于任意 module
+                                connect[term] = net_desc
+                            elif nets := module.nets.find(rf"{net_desc}\[\d+\]"):
+                                # 在 module 中这个 net 属于一组总线
+                                connect.update(expandTermNetPairs(term, nets))
+                            else:
+                                # net 不是总线描述
+                                connect[term] = net_desc
+                        else:
+                            connect[term] = net_desc
                 elif isinstance(net_desc, tuple):  # 一对多连接
-                    if reference:
-                        result = reference.terminals.find(rf"{term}(\[\d+\]|<\d+>)")
+                    if not verilog_style:
+                        raise ValueError(
+                            "single-multiple connection only supported in Verilog style"
+                        )
+                    if master:
+                        result = master.terminals.find(rf"{term}\[\d+\]")
                         if not result:
                             raise ValueError(
-                                f"term bus type {term!r} not found in module {reference.name!r}"
+                                f"term bus type {term!r} not found in module {master.name!r}"
                             )
                         if len(result) != len(net_desc):
                             raise ValueError(
@@ -244,23 +262,34 @@ class Instance(Fig):
                     else:
                         connect.update(expandTermNetPairs(term, net_desc))
             self.connection = connect
-        elif isinstance(self.connection, (list, tuple)):
-            if reference:
-                if len(self.connection) != len(reference.terminals):
+        elif isinstance(self.connection, tuple):
+            if master:
+                if len(self.connection) != len(master.terminals):
                     raise ValueError(
                         "different number of terms and nets, cannot connect by order."
                     )
                 connect = {}
-                for term, net_desc in zip(reference.terminals, self.connection):
+                for term, net_desc in zip(master.terminals, self.connection):
                     connect[term.name] = net_desc
                 self.connection = connect
             else:
-                # 没有可以参考的Module，顺序连接忽略重建
-                logger.warning(
-                    f"Module {mod_name!r} instance '{ref_name}:{self.name}' has no reference module, ignore rebuild by order."
-                )
+                # 没有可以参考的 master
+                if module is None or not verilog_style:
+                    # 不属于任何模块，或者不是 Verilog 风格的连接描述，顺序连接无法重建
+                    logger.warning(
+                        f"Module {mod_name!r} instance '{ref_name}:{self.name}' has no reference master, ignore rebuild by order."
+                    )
+                else:
+                    connect = []
+                    for net_desc in self.connection:
+                        if nets := module.nets.find(rf"{net_desc}\[\d+\]"):
+                            # 匹配到总线描述，拓展该链接
+                            connect.extend(map(str, nets))
+                        else:
+                            connect.append(net_desc)
+                    self.connection = connect
         else:
-            raise TypeError("connection must be dict, list or tuple.")
+            raise TypeError("connection must be dict or tuple.")
 
     def dumpToSpice(self, *, width_limit: int = 88) -> str:
         if isinstance(self.reference, obj.Unknown):
