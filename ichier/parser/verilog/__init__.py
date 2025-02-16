@@ -79,10 +79,14 @@ class PreProc:
         return PreProc.removeAloneWires(PreProc.removeComments(code))
 
     @staticmethod
+    def preserveLineFeed(m: re.Match) -> str:
+        return "\n" * m.group().count("\n")
+
+    @staticmethod
     def removeComments(code: str) -> str:
         return re.sub(
             r"/\*.*?\*/",
-            lambda m: "\n" * m.group().count("\n"),
+            PreProc.preserveLineFeed,
             code,
             flags=re.DOTALL,
         )
@@ -90,8 +94,8 @@ class PreProc:
     @staticmethod
     def removeAloneWires(code: str) -> str:
         return re.sub(
-            r"wire\s++[^[].*?;",
-            lambda m: "\n" * m.group().count("\n"),
+            r"wire\s+[^[\s].+?;",
+            PreProc.preserveLineFeed,
             code,
             flags=re.DOTALL,
         )

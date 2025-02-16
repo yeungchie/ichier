@@ -1,6 +1,7 @@
 from textwrap import dedent
+import re
 
-from ichier.parser.verilog import fromCode
+from ichier.parser.verilog import fromCode, PreProc
 
 
 class TestSpiceParser:
@@ -48,3 +49,35 @@ class TestSpiceParser:
         assert connection["in[0]"] == "in[0]"
         assert connection["in[1]"] == "in[1]"
         assert connection["out"] == "out"
+
+    def test_pre_proc(self):
+        code = """\
+        /*
+         * comment
+         */
+        wire  [3:0] a;
+        wire  b1, b2, b3;
+        wire  /* comment */
+              [1:0] c;
+        wire  d;
+        wire  e1  /* comment */,
+              e2;
+        """
+        code = PreProc.process(dedent(code))
+        assert code == re.sub(
+            r"^-+",
+            "",
+            """\
+------------
+------------
+------------
+------------wire  [3:0] a;
+------------
+------------wire  
+------------      [1:0] c;
+------------
+------------
+------------
+------------""",
+            flags=re.MULTILINE,
+        )
