@@ -170,7 +170,7 @@ class Module(Fig):
             inst = self.instances.get(str(i))
             if inst is None:
                 raise ValueError(f"Instance '{i!s}' not found in module {self.name!r}")
-            insts.add(inst)
+            insts.add(inst.copy())
             nets.update(inst.getAssocNets())  # 所有与这些实例有关联的 net
 
             connection = inst.connection

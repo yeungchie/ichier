@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Any, Dict, Iterator, Optional, Sequence, Tuple, Union, overload
 from textwrap import wrap
+from copy import deepcopy
 
 from icutk.log import getLogger
 
@@ -159,6 +160,29 @@ class Instance(Fig):
             raise TypeError(
                 f"this instance connection type is not supported - {type(self.connection)!r}"
             )
+
+    def copy(self, name: Optional[str] = None) -> Instance:
+        if isinstance(self.reference, obj.Unknown):
+            ref = None
+        else:
+            ref = self.reference
+        if name is None:
+            name = self.name
+        return Instance(
+            reference=ref,
+            name=name,
+            connection=deepcopy(self.connection),
+            parameters=deepcopy(self.parameters),
+            orderparams=deepcopy(self.orderparams),
+            raw=self.raw,
+            error=deepcopy(self.error),
+        )
+
+    def __copy__(self) -> Instance:
+        return self.copy()
+
+    def __deepcopy__(self, *args, **kwargs) -> Instance:
+        return self.copy()
 
     def rebuild(
         self,
