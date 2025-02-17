@@ -11,6 +11,7 @@ from .trace import (
     traceByInstTermOrder,
     ConnectByName,
     ConnectByOrder,
+    Connect,
 )
 from ..utils import flattenSequence, expandTermNetPairs
 
@@ -146,7 +147,7 @@ class Instance(Fig):
     def trace(self, according: str, depth: int = -1) -> ConnectByName: ...
     @overload
     def trace(self, according: int, depth: int = -1) -> ConnectByOrder: ...
-    def trace(self, according: Union[str, int], depth: int = -1):
+    def trace(self, according: Union[str, int], depth: int = -1) -> Connect:
         if isinstance(self.connection, dict):
             if not isinstance(according, str):
                 raise ValueError(
@@ -159,6 +160,10 @@ class Instance(Fig):
                     f"this instance connection is a tuple, the according should be an integer - {according!r}"
                 )
             return traceByInstTermOrder(self, according, depth=depth)
+        else:
+            raise TypeError(
+                f"this instance connection type is not supported - {type(self.connection)!r}"
+            )
 
     def rebuild(
         self,
