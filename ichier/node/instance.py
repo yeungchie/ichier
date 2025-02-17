@@ -26,11 +26,7 @@ class Instance(Fig):
         self,
         reference: Optional[str],
         name: Optional[str] = None,
-        connection: Union[
-            None,
-            Dict[str, Union[None, str, Sequence[str]]],
-            Sequence[Union[None, str, Sequence[str]]],
-        ] = None,
+        connection: Optional[Union[Dict[str, Any], Sequence[Any]]] = None,
         parameters: Optional[Dict[str, Any]] = None,
         orderparams: Optional[Sequence[str]] = None,
         raw: Optional[str] = None,
@@ -70,12 +66,11 @@ class Instance(Fig):
     @connection.setter
     def connection(
         self,
-        value: Union[
-            Dict[str, Union[None, str, Sequence[str]]],
-            Sequence[Union[None, str, Sequence[str]]],
-        ],
+        value: Optional[Union[Dict[str, Any], Sequence[Any]]],
     ) -> None:
-        if isinstance(value, dict):
+        if value is None:
+            self.__connection = {}
+        elif isinstance(value, dict):
             connect = {}
             for term, net_info in value.items():
                 if not isinstance(term, str):
