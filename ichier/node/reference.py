@@ -47,7 +47,7 @@ class Reference(str):
 
 class DesignateReference(Reference):
     def getMaster(self) -> None:
-        raise NotImplementedError("Designate reference do not have master")
+        pass
 
 
 class Unknown:
@@ -72,4 +72,4 @@ class Unknown:
         return self.__instance
 
     def getMaster(self) -> None:
-        raise NotImplementedError("Unknown reference do not have master")
+        pass

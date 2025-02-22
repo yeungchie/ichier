@@ -201,10 +201,7 @@ class Instance(Fig):
         mod_name = "(NONE)" if module is None else module.name
 
         if master is None:
-            try:
-                master = self.reference.getMaster()
-            except NotImplementedError:
-                pass
+            master = self.reference.getMaster()
 
         ref_name = self.reference.name
         if master is None:
