@@ -6,7 +6,7 @@ from copy import deepcopy
 from icutk.log import getLogger
 
 from . import obj
-from .fig import Fig, FigCollection
+from .fig import Fig, FigCollection, Collection, OrderList
 from .trace import (
     traceByInstTermName,
     traceByInstTermOrder,
@@ -19,6 +19,8 @@ from ..utils import flattenSequence, expandTermNetPairs
 __all__ = [
     "Instance",
     "InstanceCollection",
+    "ConnectionPair",
+    "ConnectionList",
 ]
 
 
@@ -59,9 +61,7 @@ class Instance(Fig):
             self.__reference = obj.Reference(value, instance=self)
 
     @property
-    def connection(
-        self,
-    ) -> Union[Dict[str, Union[str, Tuple[str, ...]]], Tuple[str, ...]]:
+    def connection(self) -> Union[ConnectionPair, ConnectionList]:
         return self.__connection
 
     @connection.setter
@@ -70,8 +70,9 @@ class Instance(Fig):
         value: Optional[Union[Dict[str, Any], Sequence[Any]]],
     ) -> None:
         if value is None:
-            self.__connection = {}
-        elif isinstance(value, dict):
+            self.__connection = ConnectionPair()
+            return
+        if isinstance(value, dict):
             connect = {}
             for term, net_info in value.items():
                 if not isinstance(term, str):
@@ -86,13 +87,14 @@ class Instance(Fig):
                     raise TypeError(
                         "connect by name, net description must be a string or a sequence"
                     )
+            self.__connection = ConnectionPair(connect)
         elif isinstance(value, Sequence):
             connect = flattenSequence(tuple(value))
             if not all(x is None or isinstance(x, str) for x in connect):
                 raise TypeError("connect by order, must be a sequence of strings")
+            self.__connection = ConnectionList(connect)
         else:
             raise TypeError("connection must be a dict or a sequence")
-        self.__connection = connect
 
     def getAssocNets(self) -> Tuple[obj.Net, ...]:
         """Get the nets associated with the instance in the module."""
@@ -100,7 +102,7 @@ class Instance(Fig):
         if module is None:
             raise ValueError("Instance not in module")
         nets = set()
-        if isinstance(self.connection, dict):
+        if isinstance(self.connection, ConnectionPair):
             connects = self.connection.values()
         else:
             connects = self.connection
@@ -144,13 +146,13 @@ class Instance(Fig):
     @overload
     def trace(self, according: int, depth: int = -1) -> ConnectByOrder: ...
     def trace(self, according: Union[str, int], depth: int = -1) -> Connect:
-        if isinstance(self.connection, dict):
+        if isinstance(self.connection, ConnectionPair):
             if not isinstance(according, str):
                 raise ValueError(
                     f"this instance connection is a dict, the according should be a string - {according!r}"
                 )
             return traceByInstTermName(self, according, depth=depth)
-        elif isinstance(self.connection, tuple):
+        elif isinstance(self.connection, ConnectionList):
             if not isinstance(according, int):
                 raise ValueError(
                     f"this instance connection is a tuple, the according should be an integer - {according!r}"
@@ -211,7 +213,7 @@ class Instance(Fig):
             f"Rebuilding module {mod_name!r} instance '{ref_name}:{self.name}' ..."
         )
 
-        if isinstance(self.connection, dict):
+        if isinstance(self.connection, ConnectionPair):
             connect = {}
             for term, net_desc in self.connection.items():
                 if isinstance(net_desc, str):  # 一对一连接
@@ -263,7 +265,7 @@ class Instance(Fig):
                                 connect[term] = net_desc
                         else:
                             connect[term] = net_desc
-                elif isinstance(net_desc, tuple):  # 一对多连接
+                elif isinstance(net_desc, (list, tuple)):  # 一对多连接
                     if not verilog_style:
                         raise ValueError(
                             "single-multiple connection only supported in Verilog style"
@@ -283,7 +285,7 @@ class Instance(Fig):
                     else:
                         connect.update(expandTermNetPairs(term, net_desc))
             self.connection = connect
-        elif isinstance(self.connection, tuple):
+        elif isinstance(self.connection, ConnectionList):
             if master:
                 if len(self.connection) != len(master.terminals):
                     raise ValueError(
@@ -310,7 +312,9 @@ class Instance(Fig):
                             connect.append(net_desc)
                     self.connection = connect
         else:
-            raise TypeError("connection must be dict or tuple.")
+            raise TypeError(
+                f"connection must be dict or tuple - {type(self.connection)}"
+            )
 
     def dumpToSpice(self, *, width_limit: int = 88) -> str:
         if isinstance(self.reference, obj.Unknown):
@@ -324,7 +328,7 @@ class Instance(Fig):
             prefix = "X"
         tokens = [prefix + self.name]
         if isinstance(self.reference, obj.DesignateReference):
-            if isinstance(self.connection, dict):
+            if isinstance(self.connection, ConnectionPair):
                 for net in self.connection.values():
                     if not isinstance(net, str):
                         raise TypeError("net must be a string")
@@ -333,7 +337,7 @@ class Instance(Fig):
                 tokens += self.connection
             tokens.append(f"$[{self.reference.name}]")
         else:
-            if isinstance(self.connection, dict):
+            if isinstance(self.connection, ConnectionPair):
                 tokens += ["/", self.reference.name, "$PINS"]
                 for term, net in self.connection.items():
                     if not isinstance(net, str):
@@ -389,3 +393,14 @@ class InstanceCollection(FigCollection):
     ) -> None:
         for fig in self:
             fig.rebuild(mute=mute, verilog_style=verilog_style)
+
+
+class ConnectionPair(Collection):
+    pass
+    # def __repr__(self) -> str:
+    #     s = f"{self.__class__.__name__}("
+    #     return s + ")"
+
+
+class ConnectionList(OrderList):
+    pass

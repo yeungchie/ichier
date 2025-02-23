@@ -99,10 +99,12 @@ def traceByNet(net: obj.Net, depth: int = -1) -> Route:
             for t, n in inst.connection.items():
                 if n == net.name:
                     segs.append(traceByInstTermName(inst, t, depth))
-        elif isinstance(inst.connection, tuple):
+        elif isinstance(inst.connection, list):
             for i, n in enumerate(inst.connection):
                 if n == net.name:
                     segs.append(traceByInstTermOrder(inst, i, depth))
+        else:
+            raise TypeError(f"Invalid connection type {type(inst.connection)}")
     return Route(net, segs)
 
 
@@ -125,7 +127,7 @@ def traceByInstTermOrder(
     term_order: int,
     depth: int = -1,
 ) -> ConnectByOrder:
-    if not isinstance(instance.connection, tuple):
+    if not isinstance(instance.connection, list):
         raise ValueError(f"{instance!r} is not connect by order")
     try:
         instance.connection[term_order]

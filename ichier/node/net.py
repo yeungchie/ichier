@@ -22,7 +22,7 @@ class Net(Fig):
             raise ValueError("Instance not in module")
         insts = set()
         for inst in module.instances:
-            if isinstance(inst.connection, tuple):
+            if isinstance(inst.connection, list):
                 nets = inst.connection
             elif isinstance(inst.connection, dict):
                 nets = inst.connection.values()
@@ -78,7 +78,7 @@ class NetCollection(FigCollection):
             if isinstance(connection, dict):
                 for net in connection.values():
                     all_nets.add(net)
-            elif isinstance(connection, tuple):
+            elif isinstance(connection, list):
                 for net in connection:
                     all_nets.add(net)
 

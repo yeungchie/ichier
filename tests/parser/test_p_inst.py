@@ -32,7 +32,7 @@ class TestSyntax:
         inst = parse("X0 net1 net2 net3 net4 nch m=1 length=4u width=10u")
         assert inst.name == "X0"
         assert inst.reference.name == "nch"
-        assert inst.connection == ("net1", "net2", "net3", "net4")
+        assert inst.connection == ["net1", "net2", "net3", "net4"]
         assert inst.parameters == {"m": "1", "length": "4u", "width": "10u"}
 
     def test_inst_subckt2(self):
@@ -63,7 +63,7 @@ class TestSyntax:
         inst = parse("X0 net1 net2 net3 net4 / nch m=1 length=4u width=10u")
         assert inst.name == "X0"
         assert inst.reference.name == "nch"
-        assert inst.connection == ("net1", "net2", "net3", "net4")
+        assert inst.connection == ["net1", "net2", "net3", "net4"]
         assert inst.parameters == {"m": "1", "length": "4u", "width": "10u"}
 
     def test_inst_subckt3(self):
@@ -232,7 +232,7 @@ class TestSyntax:
         inst = parse("R0 net1 net2 pdk_res 1.2K length=10u width=1u")
         assert inst.name == "R0"
         assert inst.reference.name == "pdk_res"
-        assert inst.connection == ("net1", "net2")
+        assert inst.connection == ["net1", "net2"]
         assert inst.orderparams == ["1.2K"]
         assert inst.parameters == {
             "length": "10u",
@@ -242,7 +242,7 @@ class TestSyntax:
         inst = parse("R0 net1 net2 pdk_res r=1.2K length=10u width=1u")
         assert inst.name == "R0"
         assert inst.reference.name == "pdk_res"
-        assert inst.connection == ("net1", "net2")
+        assert inst.connection == ["net1", "net2"]
         assert inst.orderparams == []
         assert inst.parameters == {
             "r": "1.2K",
@@ -278,7 +278,7 @@ class TestSyntax:
         inst = parse("R0 net1 net2 1.2K $[pdk_res] length=10u width=1u")
         assert inst.name == "R0"
         assert inst.reference.name == "pdk_res"
-        assert inst.connection == ("net1", "net2")
+        assert inst.connection == ["net1", "net2"]
         assert inst.orderparams == ["1.2K"]
         assert inst.parameters == {
             "length": "10u",
@@ -288,7 +288,7 @@ class TestSyntax:
         inst = parse("R0 net1 net2 r=1.2K $[pdk_res] length=10u width=1u")
         assert inst.name == "R0"
         assert inst.reference.name == "pdk_res"
-        assert inst.connection == ("net1", "net2")
+        assert inst.connection == ["net1", "net2"]
         assert inst.orderparams == []
         assert inst.parameters == {
             "r": "1.2K",
@@ -326,7 +326,7 @@ class TestSyntax:
         inst = parse("Q0 net1 net2 net3 pdk_pnp 25 length=5u width=5u")
         assert inst.name == "Q0"
         assert inst.reference.name == "pdk_pnp"
-        assert inst.connection == ("net1", "net2", "net3")
+        assert inst.connection == ["net1", "net2", "net3"]
         assert inst.orderparams == ["25"]
         assert inst.parameters == {
             "length": "5u",
@@ -336,7 +336,7 @@ class TestSyntax:
         inst = parse("Q0 net1 net2 net3 pdk_pnp area=25 length=5u width=5u")
         assert inst.name == "Q0"
         assert inst.reference.name == "pdk_pnp"
-        assert inst.connection == ("net1", "net2", "net3")
+        assert inst.connection == ["net1", "net2", "net3"]
         assert inst.orderparams == []
         assert inst.parameters == {
             "area": "25",
@@ -374,7 +374,7 @@ class TestSyntax:
         inst = parse("Q0 net1 net2 net3 25 $[pdk_pnp] length=5u width=5u")
         assert inst.name == "Q0"
         assert inst.reference.name == "pdk_pnp"
-        assert inst.connection == ("net1", "net2", "net3")
+        assert inst.connection == ["net1", "net2", "net3"]
         assert inst.orderparams == ["25"]
         assert inst.parameters == {
             "length": "5u",
@@ -384,7 +384,7 @@ class TestSyntax:
         inst = parse("Q0 net1 net2 net3 area=25 $[pdk_pnp] length=5u width=5u")
         assert inst.name == "Q0"
         assert inst.reference.name == "pdk_pnp"
-        assert inst.connection == ("net1", "net2", "net3")
+        assert inst.connection == ["net1", "net2", "net3"]
         assert inst.orderparams == []
         assert inst.parameters == {
             "area": "25",
@@ -410,7 +410,7 @@ class TestSyntax:
         inst = parse("M0 net1 net2 net3 net4 pdk_mos length=1u width=2u")
         assert inst.name == "M0"
         assert inst.reference.name == "pdk_mos"
-        assert inst.connection == ("net1", "net2", "net3", "net4")
+        assert inst.connection == ["net1", "net2", "net3", "net4"]
         assert inst.orderparams == []
         assert inst.parameters == {
             "length": "1u",
@@ -435,7 +435,7 @@ class TestSyntax:
         inst = parse("M0 net1 net2 net3 net4 $[pdk_mos] length=1u width=2u")
         assert inst.name == "M0"
         assert inst.reference.name == "pdk_mos"
-        assert inst.connection == ("net1", "net2", "net3", "net4")
+        assert inst.connection == ["net1", "net2", "net3", "net4"]
         assert inst.orderparams == []
         assert inst.parameters == {
             "length": "1u",

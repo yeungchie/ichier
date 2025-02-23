@@ -1,6 +1,6 @@
 from typing import Any, Dict
 
-from .fig import Collection
+from .fig import Collection, OrderList
 
 __all__ = [
     "ParameterCollection",
@@ -27,15 +27,9 @@ class SpecifyParameters(ParameterCollection):
     pass
 
 
-class OrderParameters(list):
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__()
-        if args == (None,) and not kwargs:
-            return
-        self.extend(*args, **kwargs)
-
+class OrderParameters(OrderList):
     def __repr__(self) -> str:
-        return f"Params: {list(self)!r}"
+        return self.repr("Params")
 
     def summary(self) -> Dict[str, Any]:
         return {
