@@ -9,6 +9,7 @@ __all__ = [
     "Fig",
     "Collection",
     "FigCollection",
+    "OrderList",
 ]
 
 
@@ -123,6 +124,28 @@ class Collection(dict):
     def type(self) -> str:
         return self.__class__.__name__
 
+    def __repr__(self) -> str:
+        return self.repr()
+
+    def repr(self, prompt: Optional[str] = None) -> str:
+        if prompt is None:
+            prompt = f"{self.__class__.__name__}"
+        s = prompt + ":"
+
+        if not self:
+            return s + " empty"
+
+        kvp = [*self.items()]
+        s += "\n"
+
+        if len(self) <= 6:
+            s += "\n".join(f"  {k} -> {v}" for k, v in kvp)
+        else:
+            s += "\n".join(f"  {k} -> {v}" for k, v in kvp[:4])
+            s += "\n  ...\n"
+            s += "\n".join(f"  {k} -> {v}" for k, v in kvp[-2:])
+        return s
+
     def _keyChecker(self, key: str) -> None:
         if not isinstance(key, str):
             raise KeyError(f"key must be a string - {key!r}")
@@ -194,11 +217,18 @@ class Collection(dict):
         name: str,
         ignorecase: bool = False,
         dict_result: bool = False,
+        target: Literal["key", "value"] = "key",
     ) -> Union[tuple, dict]:
+        if target not in ("key", "value"):
+            raise ValueError(f"target must be 'key' or 'value' - {target!r}")
         result = {}
-        pattern = re.compile(name, re.IGNORECASE if ignorecase else 0)
+        pattern = re.compile(name, flags=re.IGNORECASE if ignorecase else 0)
         for key, value in self.items():
-            if pattern.fullmatch(key):
+            if target == "key":
+                s = key
+            elif target == "value":
+                s = str(value)
+            if pattern.fullmatch(s):
                 result[key] = value
         if dict_result:
             return result
@@ -221,12 +251,14 @@ class FigCollection(Collection):
         self.extend(figs)
 
     def __repr__(self) -> str:
-        s = f"{self.__class__.__name__}: {len(self)} figs\n"
-        if len(self) <= 6:
-            s += repr(tuple(self.values()))
+        s = f"{self.__class__.__name__}: {len(self)} figs"
+        if not self:
+            pass
+        elif len(self) <= 6:
+            s += f"\n{tuple(self.values())!r}"
         else:
             queue = [repr(x) for x in self.values()]
-            s += "(" + ",\n ".join(queue[:4] + ["..."] + queue[-2:]) + ")"
+            s += "\n(" + ",\n ".join(queue[:4] + ["..."] + queue[-2:]) + ")"
         return s
 
     @property
@@ -281,3 +313,23 @@ class FigCollection(Collection):
 
     def dump(self, *args, **kwargs) -> str:
         return "\n".join(fig.dump(*args, **kwargs) for fig in self)
+
+
+class OrderList(list):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__()
+        if args == (None,) and not kwargs:
+            return
+        self.extend(list(*args, **kwargs))
+
+    @property
+    def type(self) -> str:
+        return self.__class__.__name__
+
+    def __repr__(self) -> str:
+        return self.repr()
+
+    def repr(self, prompt: Optional[str] = None) -> str:
+        if prompt is None:
+            prompt = f"{self.__class__.__name__}"
+        return f"{prompt}: {super().__repr__()}"

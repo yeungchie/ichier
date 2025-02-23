@@ -41,7 +41,7 @@ class TestMakeModule:
         """
         design = fromVerilogCode(code)
         buf4 = design.modules["buf4"]
-        buf3 = buf4.makeModule("buf3", instances=["b0", "b1", "b2"])
+        buf3 = buf4.pack("buf3", instances=["b0", "b1", "b2"])
         assert buf3.name == "buf3"
         assert len(buf3.instances) == 3
         assert buf3.getDesign() is design

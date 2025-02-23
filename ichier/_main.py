@@ -7,8 +7,8 @@ import os
 import re
 
 from . import release
-from .node import obj
 from .parser import fromVerilog, fromSpice
+import ichier
 
 
 def parse_arguments():
@@ -58,7 +58,7 @@ def parse_arguments():
 def load_file(
     file: Union[str, Path],
     format: Optional[Literal["spice", "verilog"]] = None,
-) -> Optional[obj.Design]:
+) -> Optional[ichier.Design]:
     if format is None:
         if ":" in str(file):
             file, _, mark = str(file).rpartition(":")
@@ -94,7 +94,7 @@ def load_file(
 try:
     from .utils.progress import Daemon
 
-    def load_verilog(file) -> obj.Design:
+    def load_verilog(file) -> ichier.Design:
         PD = Daemon()
         pdp = Process(target=PD.worker, daemon=True)
         pdp.start()
@@ -105,7 +105,7 @@ try:
             pdp.terminate()
         return design
 
-    def load_spice(file) -> obj.Design:
+    def load_spice(file) -> ichier.Design:
         PD = Daemon()
         pdp = Process(target=PD.worker, daemon=True)
         pdp.start()
@@ -118,18 +118,20 @@ try:
 
 except ImportError:
 
-    def load_verilog(file) -> obj.Design:
+    def load_verilog(file) -> ichier.Design:
         design = fromVerilog(file)
         design.modules.rebuild(mute=True, verilog_style=True)
         return design
 
-    def load_spice(file) -> obj.Design:
+    def load_spice(file) -> ichier.Design:
         design = fromSpice(file)
         design.modules.rebuild(mute=True)
         return design
 
 
-def show_tips(design: obj.Design, used_time: float, lang: Literal["en", "zh"] = "en"):
+def show_tips(
+    design: ichier.Design, used_time: float, lang: Literal["en", "zh"] = "en"
+):
     title = f"IC Hierarchy {release.version}"
     if lang == "en":
         banner = dedent(f"""\
@@ -190,12 +192,6 @@ def main():
         from icutk import cli
         from time import perf_counter
 
-        start = perf_counter()
-        design = load_file(args.file)
-        if design is None:
-            return
-        used = perf_counter() - start
-
         if args.lang == "auto":
             if os.environ.get("LANG", "").startswith("zh"):
                 lang = "zh"
@@ -203,6 +199,17 @@ def main():
                 lang = "en"
         else:
             lang = args.lang
+        if lang not in ("en", "zh"):
+            raise ValueError(f"Unsupported language: {lang}")
+
+        start = perf_counter()
+        design = load_file(args.file)
+        if design is None:
+            return
+        used = perf_counter() - start
 
         show_tips(design, used_time=used, lang=lang)
-        cli.start({"design": design})
+
+        variables = {name: getattr(ichier, name) for name in ichier.__all__}
+        variables["design"] = design
+        cli.start(variables)

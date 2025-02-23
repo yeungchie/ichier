@@ -21,5 +21,5 @@ class TestInstance:
             connection=[None],
         )
         inst.rebuild()
-        assert isinstance(inst.connection, tuple)
+        assert isinstance(inst.connection, list)
         assert "Term" not in inst.connection

@@ -5,6 +5,7 @@ from icutk.log import getLogger
 
 from . import obj
 from .fig import Fig, FigCollection
+from .trace import traceByNet, Route
 from ..utils import bitInfoSplit
 
 __all__ = [
@@ -21,7 +22,7 @@ class Net(Fig):
             raise ValueError("Instance not in module")
         insts = set()
         for inst in module.instances:
-            if isinstance(inst.connection, tuple):
+            if isinstance(inst.connection, list):
                 nets = inst.connection
             elif isinstance(inst.connection, dict):
                 nets = inst.connection.values()
@@ -31,6 +32,9 @@ class Net(Fig):
 
     def split(self) -> Tuple[str, Optional[int]]:
         return bitInfoSplit(self.name)
+
+    def trace(self, depth: int = -1) -> Route:
+        return traceByNet(self, depth=depth)
 
 
 class NetCollection(FigCollection):
@@ -68,11 +72,13 @@ class NetCollection(FigCollection):
 
         # instances
         for inst in module.instances:
+            if isinstance(inst.reference, obj.Unknown):
+                continue  # 跳过 Unknown reference，可能是解析失败的实例
             connection = inst.connection
             if isinstance(connection, dict):
                 for net in connection.values():
                     all_nets.add(net)
-            elif isinstance(connection, tuple):
+            elif isinstance(connection, list):
                 for net in connection:
                     all_nets.add(net)
 
