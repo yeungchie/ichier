@@ -23,26 +23,15 @@ def parse_arguments():
         action="version",
         version=f"%(prog)s {release.version}",
     )
-    command = main_parser.add_subparsers(dest="command", required=True)
-    command.add_parser(
-        "version",
-        description="Show version information",
-        help="Show version information",
-        epilog=release.copyright,
-    )
 
+    command = main_parser.add_subparsers(dest="command", required=False)
     parse = command.add_parser(
         "parse",
         description="Parse a circuit file, and start an interactive shell",
         help="Parse a circuit file, and start an interactive shell",
         epilog=release.copyright,
     )
-    # parse.add_argument(
-    #     "format",
-    #     type=str,
-    #     choices=["spice", "verilog"],
-    #     help="Format of the circuit file (spice or verilog)",
-    # )
+
     parse.add_argument("file", type=str, help="Path to the circuit file")
     parse.add_argument(
         "--lang",
@@ -50,6 +39,13 @@ def parse_arguments():
         choices=["auto", "en", "zh"],
         default="auto",
         help="Language for tips",
+    )
+
+    command.add_parser(
+        "version",
+        description="Show version information",
+        help="Show version information",
+        epilog=release.copyright,
     )
 
     return main_parser.parse_args()
@@ -188,8 +184,14 @@ def main():
     args = parse_arguments()
     if args.command == "version":
         print(release.version)
+        return
+
+    from icutk import cli
+
+    variables = {name: getattr(ichier, name) for name in ichier.__all__}
+    if args.command is None:
+        pass
     elif args.command == "parse":
-        from icutk import cli
         from time import perf_counter
 
         if args.lang == "auto":
@@ -210,6 +212,6 @@ def main():
 
         show_tips(design, used_time=used, lang=lang)
 
-        variables = {name: getattr(ichier, name) for name in ichier.__all__}
         variables["design"] = design
-        cli.start(variables)
+
+    cli.start(variables)
