@@ -1,4 +1,4 @@
-.PHONY: check tests clean install uninstall build upload iv pverilog pspice
+.PHONY: check tests clean install uninstall build upload iv pack
 
 PY=python3
 
@@ -14,6 +14,7 @@ clean:
 	rm -rf build
 	rm -rf dist
 	rm -rf ichier.egg-info
+	rm -rf packed
 
 install:
 	$(PY) -m pip install .
@@ -32,8 +33,5 @@ iv:
 	iverilog -o test.vvp.tmp ./tmp/netlist/test.v
 	rm -f test.vvp.tmp
 
-pverilog:
-	python -m ichier parse verilog ./tmp/netlist/top.v
-
-pspice:
-	python -m ichier parse spice ./tmp/netlist/top.cdl
+pack:
+	$(PY) -m nuitka ./tmp/ichier.py --standalone --onefile --output-dir=packed --remove-output
