@@ -32,6 +32,7 @@ class Instance(Fig):
         connection: Optional[Union[Dict[str, Any], Sequence[Any]]] = None,
         parameters: Optional[Dict[str, Any]] = None,
         orderparams: Optional[Sequence[str]] = None,
+        prefix: Optional[str] = None,
         raw: Optional[str] = None,
         error: Any = None,
     ) -> None:
@@ -43,6 +44,7 @@ class Instance(Fig):
         self.connection = connection
         self.__parameters = obj.ParameterCollection(parameters)
         self.__orderparams = obj.OrderParameters(orderparams)
+        self.__prefix = prefix
         self.__raw = raw
         self.error = error
         self.collection: obj.InstanceCollection
@@ -123,6 +125,19 @@ class Instance(Fig):
     @property
     def orderparams(self) -> obj.OrderParameters:
         return self.__orderparams
+
+    @property
+    def prefix(self) -> Optional[str]:
+        if self.__prefix is not None:
+            return self.__prefix
+        if m := self.reference.getMaster():
+            return m.prefix
+
+    @prefix.setter
+    def prefix(self, value: Optional[str]) -> None:
+        if value is not None and not isinstance(value, str):
+            raise TypeError("prefix must be a string")
+        self.__prefix = value
 
     @property
     def raw(self) -> Optional[str]:
@@ -322,31 +337,45 @@ class Instance(Fig):
                 raise ValueError("raw must be set when reference is unknown")
             else:
                 return self.raw
-        if m := self.getModule():
-            prefix = m.config.get("spice_name_prefix", "X")
+        if self.prefix is not None:
+            prefix = self.prefix
+        elif m := self.getModule():
+            prefix = m.prefix
         else:
             prefix = "X"
         tokens = [prefix + self.name]
         if isinstance(self.reference, obj.DesignateReference):
             if isinstance(self.connection, ConnectionPair):
-                for net in self.connection.values():
-                    if not isinstance(net, str):
-                        raise TypeError("net must be a string")
-                    tokens.append(net)
-            else:
+                tokens += self.connection.values()
+            else:  # ConnectionList
                 tokens += self.connection
             tokens.append(f"$[{self.reference.name}]")
-        else:
+            if self.orderparams:
+                tokens.append(self.orderparams.dumpToSpice())
+            if self.parameters:
+                tokens.append(self.parameters.dumpToSpice())
+        else:  # Reference
             if isinstance(self.connection, ConnectionPair):
-                tokens += ["/", self.reference.name, "$PINS"]
-                for term, net in self.connection.items():
-                    if not isinstance(net, str):
-                        raise TypeError("net must be a string")
-                    tokens.append(f"{term!s}={net!s}")
-            else:
-                for net in self.connection:
-                    tokens.append(str(net))
+                if self.parameters or self.orderparams:
+                    tokens += self.connection.values()
+                    tokens.append(self.reference.name)
+                    if self.orderparams:
+                        tokens.append(self.orderparams.dumpToSpice())
+                    if self.parameters:
+                        tokens.append(self.parameters.dumpToSpice())
+                else:
+                    tokens += ["/", self.reference.name, "$PINS"]
+                    for term, net in self.connection.items():
+                        if not isinstance(net, str):
+                            raise TypeError("net must be a string")
+                        tokens.append(f"{term!s}={net!s}")
+            else:  # ConnectionList
+                tokens += self.connection
                 tokens += ["/", self.reference.name]
+                if self.orderparams:
+                    tokens.append(self.orderparams.dumpToSpice())
+                if self.parameters:
+                    tokens.append(self.parameters.dumpToSpice())
         return "\n".join(
             wrap(
                 " ".join(tokens),
@@ -397,9 +426,6 @@ class InstanceCollection(FigCollection):
 
 class ConnectionPair(Collection):
     pass
-    # def __repr__(self) -> str:
-    #     s = f"{self.__class__.__name__}("
-    #     return s + ")"
 
 
 class ConnectionList(OrderList):

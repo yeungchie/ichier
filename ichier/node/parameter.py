@@ -22,6 +22,9 @@ class ParameterCollection(Collection):
             "property": dict(self),
         }
 
+    def dumpToSpice(self) -> str:
+        return " ".join(f"{k!s}={v!s}" for k, v in self.items())
+
 
 class SpecifyParameters(ParameterCollection):
     pass
@@ -36,3 +39,6 @@ class OrderParameters(OrderList):
             "total": len(self),
             "items": list(self),
         }
+
+    def dumpToSpice(self) -> str:
+        return " ".join(map(str, self))

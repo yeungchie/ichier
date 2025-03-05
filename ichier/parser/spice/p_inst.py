@@ -129,6 +129,7 @@ class InstParser:
             name=name,
             connection=conn,
             parameters=params,
+            prefix="X",
         )
 
     def p_inst_subckt2(self, p):
@@ -150,6 +151,7 @@ class InstParser:
             name=name,
             connection=conn,
             parameters=params,
+            prefix="X",
         )
 
     def p_inst_subckt3(self, p):
@@ -179,6 +181,7 @@ class InstParser:
             name=name,
             connection=conn,
             parameters=params,
+            prefix="X",
         )
 
     def p_inst_subckt4(self, p):
@@ -210,6 +213,7 @@ class InstParser:
             name=name,
             connection=conn,
             parameters=params,
+            prefix="X",
         )
 
     def p_inst_2t(self, p):
@@ -232,6 +236,7 @@ class InstParser:
             connection=conn,
             parameters=params,
             orderparams=oparams,
+            prefix=name[0],
         )
 
     def p_inst_2td(self, p):
@@ -259,6 +264,7 @@ class InstParser:
             connection=conn,
             parameters=params,
             orderparams=oparams,
+            prefix=name[0],
         )
 
     def p_inst_3t(self, p):
@@ -281,6 +287,7 @@ class InstParser:
             connection=conn,
             parameters=params,
             orderparams=oparams,
+            prefix=name[0],
         )
 
     def p_inst_3td(self, p):
@@ -308,6 +315,7 @@ class InstParser:
             connection=conn,
             parameters=params,
             orderparams=oparams,
+            prefix=name[0],
         )
 
     def p_inst_4t(self, p):
@@ -330,6 +338,7 @@ class InstParser:
             connection=conn,
             parameters=params,
             orderparams=oparams,
+            prefix=name[0],
         )
 
     def p_inst_4td(self, p):
@@ -357,6 +366,7 @@ class InstParser:
             connection=conn,
             parameters=params,
             orderparams=oparams,
+            prefix=name[0],
         )
 
     def p_dev_2t(self, p):
