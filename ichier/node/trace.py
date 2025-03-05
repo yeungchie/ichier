@@ -21,12 +21,12 @@ class ConnectByName:
         self.route = None
 
     def __repr__(self) -> str:
-        return self.pprint()
+        return self.repr()
 
-    def pprint(self, indent: int = 0) -> str:
+    def repr(self, indent: int = 0) -> str:
         state = f"ConnectByName(Instance({self.instance.reference!r}, {self.instance.name!r}), {self.name!r})"
         if self.route is not None:
-            state += f" -> {self.route.pprint(indent + 1)}"
+            state += f" -> {self.route.repr(indent + 1)}"
         return state
 
     def trace(self, depth: int = -1) -> None:
@@ -48,12 +48,12 @@ class ConnectByOrder:
         self.route = None
 
     def __repr__(self) -> str:
-        return self.pprint()
+        return self.repr()
 
-    def pprint(self, indent: int = 0) -> str:
+    def repr(self, indent: int = 0) -> str:
         state = f"ConnectByOrder(Instance({self.instance.reference!r}, {self.instance.name!r}), {self.order})"
         if self.route is not None:
-            state += f" -> {self.route.pprint(indent + 1)}"
+            state += f" -> {self.route.repr(indent + 1)}"
         return state
 
     def trace(self, depth: int = -1) -> None:
@@ -77,14 +77,14 @@ class Route:
         self.connect_collection = connect_collection
 
     def __repr__(self) -> str:
-        return self.pprint()
+        return self.repr()
 
-    def pprint(self, indent: int = 1) -> str:
+    def repr(self, indent: int = 1) -> str:
         state = f"Route({self.net!r}, ["
         if self.connect_collection:
             state += "\n"
             for connect in self.connect_collection:
-                state += f"{' ' * indent}{connect.pprint(indent)},\n"
+                state += f"{' ' * indent}{connect.repr(indent)},\n"
         state += f"{' ' * (indent - 1)}])"
         return state
 
