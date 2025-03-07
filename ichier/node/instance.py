@@ -147,14 +147,19 @@ class Instance(Fig):
     def raw(self, value: Optional[str]) -> None:
         self.__raw = value
 
-    def __getitem__(self, key: str) -> Any:
-        return self.parameters[key]
-
-    def __setitem__(self, key: str, value: Any) -> None:
-        self.parameters[key] = value
-
-    def __delitem__(self, key: str) -> None:
-        del self.parameters[key]
+    def __call__(self, key: Union[str, int]) -> Any:
+        try:
+            if isinstance(key, str):
+                return self.parameters[key]
+            elif isinstance(key, int):
+                return self.orderparams[key]
+            else:
+                raise TypeError(f"key must be a str or an int - {key!r}")
+        except KeyError:
+            if m := self.reference.getMaster():
+                return m.parameters[key]
+        except IndexError as e:
+            raise e
 
     @overload
     def trace(self, according: str, depth: int = -1) -> ConnectByName: ...
