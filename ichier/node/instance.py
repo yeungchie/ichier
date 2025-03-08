@@ -21,6 +21,7 @@ __all__ = [
     "InstanceCollection",
     "ConnectionPair",
     "ConnectionList",
+    "InstanceHierPath",
 ]
 
 
@@ -435,3 +436,20 @@ class ConnectionPair(Collection):
 
 class ConnectionList(OrderList):
     pass
+
+
+class InstanceHierPath(list):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        if not self:
+            raise ValueError("member must not be empty")
+        for i in self:
+            if not isinstance(i, Instance):
+                raise TypeError(f"hierarchy member should be an Instance - {i!r}")
+
+    @property
+    def parent(self) -> Optional[InstanceHierPath]:
+        insts = self[:-1]
+        if not insts:
+            return None
+        return InstanceHierPath(insts)
