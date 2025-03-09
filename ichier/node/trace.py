@@ -34,7 +34,7 @@ class Connect:
             state += f" -> {self.route.repr(indent + 1)}"
         return state
 
-    def trace(self, depth: int = -1) -> None:
+    def trace(self, depth: int = -1, peek: bool = False) -> Optional[Route]:
         self.route = None
         if depth == 0:
             return
@@ -46,8 +46,13 @@ class Connect:
         elif isinstance(self, ConnectByOrder):
             net = master.nets[master.terminals[self.order].name]
         route = traceByNet(net, depth - 1)
+        if peek:
+            return route
         if route.connect_collection:
             self.route = route
+
+    def peek(self, depth: int = -1) -> Optional[Route]:
+        return self.trace(depth, peek=True)
 
 
 class ConnectByName(Connect):
