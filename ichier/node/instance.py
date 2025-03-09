@@ -12,7 +12,7 @@ from .trace import (
     traceByInstTermOrder,
     ConnectByName,
     ConnectByOrder,
-    Connect,
+    ConnectType,
 )
 from ..utils import flattenSequence, expandTermNetPairs
 
@@ -166,7 +166,7 @@ class Instance(Fig):
     def trace(self, according: str, depth: int = -1) -> ConnectByName: ...
     @overload
     def trace(self, according: int, depth: int = -1) -> ConnectByOrder: ...
-    def trace(self, according: Union[str, int], depth: int = -1) -> Connect:
+    def trace(self, according: Union[str, int], depth: int = -1) -> ConnectType:
         if isinstance(self.connection, ConnectionPair):
             if not isinstance(according, str):
                 raise ValueError(
