@@ -44,8 +44,8 @@ design = Design(
                     "inv", "i1", {"A": "A", "Z": "inter"}, {"size": "x2"}
                 ),
                 Instance(
-                    name="inv",
-                    reference="i2",
+                    reference="inv",
+                    name="i2",
                     connection={"A": "inter", "Z": "Z"},
                     parameters={"size": "x4"},
                 ),
