@@ -35,7 +35,7 @@ class Module(Fig):
         instances: Iterable[obj.Instance] = (),
         parameters: Optional[Dict[str, Any]] = None,
         specparams: Optional[Dict[str, Any]] = None,
-        prefix: str = "",
+        prefix: str = "X",
     ) -> None:
         super().__init__(name)
         self.__terminals = obj.TerminalCollection(self, terminals)

@@ -33,7 +33,7 @@ class Instance(Fig):
         connection: Optional[Union[Dict[str, Any], Sequence[Any]]] = None,
         parameters: Optional[Dict[str, Any]] = None,
         orderparams: Optional[Sequence[str]] = None,
-        prefix: Optional[str] = None,
+        prefix: Optional[str] = "X",
         raw: Optional[str] = None,
         error: Any = None,
     ) -> None:

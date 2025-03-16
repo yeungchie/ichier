@@ -87,8 +87,8 @@ print(design.dumpToSpice())
 
 .SUBCKT buf A Z
 *.PININFO A:I Z:O
-i1 / inv $PINS A=A Z=inter
-i2 / inv $PINS A=inter Z=Z
+Xi1 A inter inv size=x2
+Xi2 inter Z inv size=x4
 .ENDS
 ```
 
@@ -103,8 +103,8 @@ i2 / inv $PINS A=inter Z=Z
 
 .SUBCKT buf A Z
 *.PININFO A:I Z:O
-i1 / inv $PINS A=A Z=inter
-i2 / inv $PINS A=inter Z=Z
+Xi1 / inv $PINS A=A Z=inter
+Xi2 / inv $PINS A=inter Z=Z
 .ENDS
 ```
 
