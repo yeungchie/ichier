@@ -12,7 +12,7 @@ from .trace import (
     traceByInstTermOrder,
     ConnectByName,
     ConnectByOrder,
-    Connect,
+    ConnectType,
 )
 from ..utils import flattenSequence, expandTermNetPairs
 
@@ -21,6 +21,7 @@ __all__ = [
     "InstanceCollection",
     "ConnectionPair",
     "ConnectionList",
+    "InstanceHierPath",
 ]
 
 
@@ -32,6 +33,7 @@ class Instance(Fig):
         connection: Optional[Union[Dict[str, Any], Sequence[Any]]] = None,
         parameters: Optional[Dict[str, Any]] = None,
         orderparams: Optional[Sequence[str]] = None,
+        prefix: Optional[str] = None,
         raw: Optional[str] = None,
         error: Any = None,
     ) -> None:
@@ -43,6 +45,7 @@ class Instance(Fig):
         self.connection = connection
         self.__parameters = obj.ParameterCollection(parameters)
         self.__orderparams = obj.OrderParameters(orderparams)
+        self.__prefix = prefix
         self.__raw = raw
         self.error = error
         self.collection: obj.InstanceCollection
@@ -125,6 +128,19 @@ class Instance(Fig):
         return self.__orderparams
 
     @property
+    def prefix(self) -> Optional[str]:
+        if self.__prefix is not None:
+            return self.__prefix
+        if m := self.reference.getMaster():
+            return m.prefix
+
+    @prefix.setter
+    def prefix(self, value: Optional[str]) -> None:
+        if value is not None and not isinstance(value, str):
+            raise TypeError("prefix must be a string")
+        self.__prefix = value
+
+    @property
     def raw(self) -> Optional[str]:
         return self.__raw
 
@@ -132,20 +148,25 @@ class Instance(Fig):
     def raw(self, value: Optional[str]) -> None:
         self.__raw = value
 
-    def __getitem__(self, key: str) -> Any:
-        return self.parameters[key]
-
-    def __setitem__(self, key: str, value: Any) -> None:
-        self.parameters[key] = value
-
-    def __delitem__(self, key: str) -> None:
-        del self.parameters[key]
+    def __call__(self, key: Union[str, int]) -> Any:
+        try:
+            if isinstance(key, str):
+                return self.parameters[key]
+            elif isinstance(key, int):
+                return self.orderparams[key]
+            else:
+                raise TypeError(f"key must be a str or an int - {key!r}")
+        except KeyError:
+            if m := self.reference.getMaster():
+                return m.parameters[key]
+        except IndexError as e:
+            raise e
 
     @overload
     def trace(self, according: str, depth: int = -1) -> ConnectByName: ...
     @overload
     def trace(self, according: int, depth: int = -1) -> ConnectByOrder: ...
-    def trace(self, according: Union[str, int], depth: int = -1) -> Connect:
+    def trace(self, according: Union[str, int], depth: int = -1) -> ConnectType:
         if isinstance(self.connection, ConnectionPair):
             if not isinstance(according, str):
                 raise ValueError(
@@ -322,31 +343,45 @@ class Instance(Fig):
                 raise ValueError("raw must be set when reference is unknown")
             else:
                 return self.raw
-        if m := self.getModule():
-            prefix = m.config.get("spice_name_prefix", "X")
+        if self.prefix is not None:
+            prefix = self.prefix
+        elif m := self.getModule():
+            prefix = m.prefix
         else:
             prefix = "X"
         tokens = [prefix + self.name]
         if isinstance(self.reference, obj.DesignateReference):
             if isinstance(self.connection, ConnectionPair):
-                for net in self.connection.values():
-                    if not isinstance(net, str):
-                        raise TypeError("net must be a string")
-                    tokens.append(net)
-            else:
+                tokens += self.connection.values()
+            else:  # ConnectionList
                 tokens += self.connection
             tokens.append(f"$[{self.reference.name}]")
-        else:
+            if self.orderparams:
+                tokens.append(self.orderparams.dumpToSpice())
+            if self.parameters:
+                tokens.append(self.parameters.dumpToSpice())
+        else:  # Reference
             if isinstance(self.connection, ConnectionPair):
-                tokens += ["/", self.reference.name, "$PINS"]
-                for term, net in self.connection.items():
-                    if not isinstance(net, str):
-                        raise TypeError("net must be a string")
-                    tokens.append(f"{term!s}={net!s}")
-            else:
-                for net in self.connection:
-                    tokens.append(str(net))
+                if self.parameters or self.orderparams:
+                    tokens += self.connection.values()
+                    tokens.append(self.reference.name)
+                    if self.orderparams:
+                        tokens.append(self.orderparams.dumpToSpice())
+                    if self.parameters:
+                        tokens.append(self.parameters.dumpToSpice())
+                else:
+                    tokens += ["/", self.reference.name, "$PINS"]
+                    for term, net in self.connection.items():
+                        if not isinstance(net, str):
+                            raise TypeError("net must be a string")
+                        tokens.append(f"{term!s}={net!s}")
+            else:  # ConnectionList
+                tokens += self.connection
                 tokens += ["/", self.reference.name]
+                if self.orderparams:
+                    tokens.append(self.orderparams.dumpToSpice())
+                if self.parameters:
+                    tokens.append(self.parameters.dumpToSpice())
         return "\n".join(
             wrap(
                 " ".join(tokens),
@@ -397,10 +432,24 @@ class InstanceCollection(FigCollection):
 
 class ConnectionPair(Collection):
     pass
-    # def __repr__(self) -> str:
-    #     s = f"{self.__class__.__name__}("
-    #     return s + ")"
 
 
 class ConnectionList(OrderList):
     pass
+
+
+class InstanceHierPath(list):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        if not self:
+            raise ValueError("member must not be empty")
+        for i in self:
+            if not isinstance(i, Instance):
+                raise TypeError(f"hierarchy member should be an Instance - {i!r}")
+
+    @property
+    def parent(self) -> Optional[InstanceHierPath]:
+        insts = self[:-1]
+        if not insts:
+            return None
+        return InstanceHierPath(insts)

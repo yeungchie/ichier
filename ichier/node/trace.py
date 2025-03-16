@@ -1,12 +1,12 @@
 from __future__ import annotations
-from typing import List, Union
+from typing import List, Optional, Union
 
 from . import obj
 
 __all__ = [
     "ConnectByName",
     "ConnectByOrder",
-    "Connect",
+    "ConnectType",
     "Route",
     "traceByNet",
     "traceByInstTermName",
@@ -14,77 +14,78 @@ __all__ = [
 ]
 
 
-class ConnectByName:
+class Connect:
+    instance: obj.Instance
+    route: Optional[Route]
+
+    def __repr__(self) -> str:
+        return self.repr()
+
+    def repr(self, indent: int = 0) -> str:
+        inst = self.instance
+        inst_repr = f"Instance({inst.reference!r}, {inst.name!r})"
+        if isinstance(self, ConnectByName):
+            state = f"ConnectByName({inst_repr!s}, {self.name!r})"
+        elif isinstance(self, ConnectByOrder):
+            state = f"ConnectByOrder({inst_repr!s}, {self.order!r})"
+        else:
+            raise TypeError(f"Invalid Connect type - {type(self)!r}")
+        if self.route is not None:
+            state += f" -> {self.route.repr(indent + 1)}"
+        return state
+
+    def trace(self, depth: int = -1, peek: bool = False) -> Optional[Route]:
+        self.route = None
+        if depth == 0:
+            return
+        master = self.instance.reference.getMaster()
+        if master is None:
+            return
+        if isinstance(self, ConnectByName):
+            net = master.nets[self.name]
+        elif isinstance(self, ConnectByOrder):
+            net = master.nets[master.terminals[self.order].name]
+        route = traceByNet(net, depth - 1)
+        if peek:
+            return route
+        if route.connect_collection:
+            self.route = route
+
+    def peek(self, depth: int = -1) -> Optional[Route]:
+        return self.trace(depth, peek=True)
+
+
+class ConnectByName(Connect):
     def __init__(self, instance: obj.Instance, name: str) -> None:
         self.instance = instance
         self.name = name
         self.route = None
 
-    def __repr__(self) -> str:
-        return self.pprint()
 
-    def pprint(self, indent: int = 0) -> str:
-        state = f"ConnectByName(Instance({self.instance.reference!r}, {self.instance.name!r}), {self.name!r})"
-        if self.route is not None:
-            state += f" -> {self.route.pprint(indent + 1)}"
-        return state
-
-    def trace(self, depth: int = -1) -> None:
-        self.route = None
-        if depth == 0:
-            return
-        master = self.instance.reference.getMaster()
-        if master is None:
-            return
-        route = traceByNet(master.nets[self.name], depth - 1)
-        if route.connect_collection:
-            self.route = route
-
-
-class ConnectByOrder:
+class ConnectByOrder(Connect):
     def __init__(self, instance: obj.Instance, order: int) -> None:
         self.instance = instance
         self.order = order
         self.route = None
 
-    def __repr__(self) -> str:
-        return self.pprint()
 
-    def pprint(self, indent: int = 0) -> str:
-        state = f"ConnectByOrder(Instance({self.instance.reference!r}, {self.instance.name!r}), {self.order})"
-        if self.route is not None:
-            state += f" -> {self.route.pprint(indent + 1)}"
-        return state
-
-    def trace(self, depth: int = -1) -> None:
-        self.route = None
-        if depth == 0:
-            return
-        master = self.instance.reference.getMaster()
-        if master is None:
-            return
-        route = traceByNet(master.nets[master.terminals[self.order].name], depth - 1)
-        if route.connect_collection:
-            self.route = route
-
-
-Connect = Union[ConnectByName, ConnectByOrder]
+ConnectType = Union[ConnectByName, ConnectByOrder]
 
 
 class Route:
-    def __init__(self, net: obj.Net, connect_collection: List[Connect]) -> None:
+    def __init__(self, net: obj.Net, connect_collection: List[ConnectType]) -> None:
         self.net = net
         self.connect_collection = connect_collection
 
     def __repr__(self) -> str:
-        return self.pprint()
+        return self.repr()
 
-    def pprint(self, indent: int = 1) -> str:
+    def repr(self, indent: int = 1) -> str:
         state = f"Route({self.net!r}, ["
         if self.connect_collection:
             state += "\n"
             for connect in self.connect_collection:
-                state += f"{' ' * indent}{connect.pprint(indent)},\n"
+                state += f"{' ' * indent}{connect.repr(indent)},\n"
         state += f"{' ' * (indent - 1)}])"
         return state
 

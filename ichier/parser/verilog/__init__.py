@@ -66,10 +66,16 @@ def worker(
     path: Optional[Union[str, Path]] = None,
     msg_queue: Optional[Queue] = None,
 ) -> Design:
-    if isinstance(item, CodeItem):
-        design = item.load(path=path, msg_queue=msg_queue)
-    elif isinstance(item, FileItem):
-        design = item.load(msg_queue=msg_queue)
+    try:
+        if isinstance(item, CodeItem):
+            design = item.load(path=path, msg_queue=msg_queue)
+        elif isinstance(item, FileItem):
+            path = item.path
+            design = item.load(msg_queue=msg_queue)
+    except Exception as err:
+        if path is None:
+            raise err
+        raise type(err)(f"{path}, {err}")
     return design
 
 
