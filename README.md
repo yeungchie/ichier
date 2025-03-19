@@ -1,5 +1,11 @@
 <h1 align="center"><span style="color:red"><u>I</u></span>ntegrated <span style="color:red"><u>C</u></span>ircuit <span style="color:red"><u>Hier</u></span>archy</h1>
 
+!["PyPI"](https://img.shields.io/pypi/v/ichier)
+!["PyPI"](https://img.shields.io/pypi/format/ichier)
+!["PyPI"](https://img.shields.io/pypi/pyversions/ichier)
+!["PyPI"](https://img.shields.io/pypi/dm/ichier)
+!["PyPI"](https://img.shields.io/pypi/l/ichier)
+
 ## 做什么用？
 
 > 懒得写，AI 帮我总结了一下。
@@ -111,7 +117,7 @@ Xi2 / inv $PINS A=inter Z=Z
 + 解析 Spice 文件
 
 ```python
-from ichier.parser import fromSpice
+from ichier import fromSpice
 design = fromSpice("top.cdl")
 ```
 
@@ -131,7 +137,7 @@ endmodule
 ```
 
 ```python
-from ichier.parser import fromVerilog
+from ichier import fromVerilog
 design = fromVerilog("top.v")
 ```
 
