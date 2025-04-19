@@ -34,9 +34,7 @@ def fromCode(
     path: Optional[Path] = None,
     msg_queue: Optional[Queue] = None,
 ) -> ichier.Design:
-    args_array = []
-    for item in parseInclude(file=str(path), code=code):
-        args_array.append((item, path, msg_queue))
+    args_array = [(item, msg_queue) for item in parseInclude(file=str(path), code=code)]
     # designs = [worker(*args) for args in args_array]
     with Pool() as pool:
         designs = pool.starmap(worker, args_array)
@@ -57,19 +55,14 @@ def fromCode(
 
 def worker(
     item: Union[CodeItem, FileItem],
-    path: Optional[Union[str, Path]] = None,
     msg_queue: Optional[Queue] = None,
 ) -> ichier.Design:
     try:
-        if isinstance(item, CodeItem):
-            design = item.load(msg_queue=msg_queue)
-        elif isinstance(item, FileItem):
-            path = item.path
-            design = item.load(msg_queue=msg_queue)
+        design = item.load(msg_queue=msg_queue)
     except Exception as err:
-        if path is None:
+        if item.path is None:
             raise err
-        raise type(err)(f"{path}, {err}")
+        raise type(err)(f"{item.path}, {err}")
     return design
 
 

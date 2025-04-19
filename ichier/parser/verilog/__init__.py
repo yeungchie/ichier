@@ -35,20 +35,13 @@ def fromCode(
     path: Optional[Union[str, Path]] = None,
     msg_queue: Optional[Queue] = None,
 ) -> Design:
-    args_array = []
-    for item in parseInclude(file=str(path), code=code):
-        if isinstance(item, CodeItem):
-            args_array.append((item, path, msg_queue))
-        elif isinstance(item, FileItem):
-            args_array.append((item, None, msg_queue))
-
-    design = Design()
+    args_array = [(item, msg_queue) for item in parseInclude(file=str(path), code=code)]
     # designs = [worker(*args) for args in args_array]
     with Pool() as pool:
         designs = pool.starmap(worker, args_array)
+    design = Design()
     for d in designs:
         design.includeOtherDesign(d)
-
     if rebuild:
         design.modules.rebuild(verilog_style=True)
     if path is not None:
@@ -63,19 +56,14 @@ def fromCode(
 
 def worker(
     item: Union[CodeItem, FileItem],
-    path: Optional[Union[str, Path]] = None,
     msg_queue: Optional[Queue] = None,
 ) -> Design:
     try:
-        if isinstance(item, CodeItem):
-            design = item.load(msg_queue=msg_queue)
-        elif isinstance(item, FileItem):
-            path = item.path
-            design = item.load(msg_queue=msg_queue)
+        design = item.load(msg_queue=msg_queue)
     except Exception as err:
-        if path is None:
+        if item.path is None:
             raise err
-        raise type(err)(f"{path}, {err}")
+        raise type(err)(f"{item.path}, {err}")
     return design
 
 
