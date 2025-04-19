@@ -1,4 +1,5 @@
 from __future__ import annotations
+from dataclasses import dataclass
 from multiprocessing import get_start_method
 
 # 不支持 spawn 进程显示进度条
@@ -7,7 +8,7 @@ if get_start_method() != "fork":
     raise ImportError("multiprocessing must be started with fork")
 
 from queue import Queue
-from typing import Dict, List, Optional, overload
+from typing import Any, Dict, List, Literal, Optional, overload
 from rich.console import Console
 from rich.progress import (
     Task,
@@ -141,26 +142,33 @@ class Daemon:
 
     def worker(self) -> None:
         progress = LoadProgress()
-        task_map: Dict[str, LoadTask] = {}
+        task_map: Dict[int, LoadTask] = {}
         with progress:
             while True:
                 if progress.task_ids and progress.finished:
                     break
-                msg = self.msg_queue.get()
-                if msg["type"] == "init":
-                    task_map[msg["id"]] = progress.task(
-                        progress.add(description=msg["value"])
+                msg = Stream(**self.msg_queue.get())
+                if msg.type == "init":
+                    task_map[msg.pid] = progress.task(
+                        progress.add(description=msg.value)
                     )
                 else:
-                    if msg["id"] not in task_map:
+                    if msg.pid not in task_map:
                         continue
-                    task = task_map[msg["id"]]
-                    if msg["type"] == "total":
-                        task.total = msg["value"]
-                    elif msg["type"] == "current":
-                        task.current = msg["value"]
-                    elif msg["type"] == "done":
+                    task = task_map[msg.pid]
+                    if msg.type == "total":
+                        task.total = msg.value
+                    elif msg.type == "current":
+                        task.current = msg.value
+                    elif msg.type == "done":
                         task.done()
+
+
+@dataclass
+class Stream:
+    pid: int
+    type: Literal["init", "total", "current", "done"]
+    value: Any = None
 
 
 if __name__ == "__main__":

@@ -118,7 +118,7 @@ Xi2 / inv $PINS A=inter Z=Z
 
 ```python
 from ichier import fromSpice
-design = fromSpice("top.cdl")
+design = fromSpice("top.cdl", rebuild=True)
 ```
 
 + 解析 Verilog 文件
@@ -138,7 +138,7 @@ endmodule
 
 ```python
 from ichier import fromVerilog
-design = fromVerilog("top.v")
+design = fromVerilog("top.v", rebuild=True)
 ```
 
 + 也可以直接使用 CLI 工具

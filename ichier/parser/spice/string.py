@@ -2,6 +2,7 @@ from pathlib import Path
 from queue import Queue
 from typing import Optional, Tuple, Union
 from uuid import uuid4
+from multiprocessing import current_process
 from icutk.string import LineIterator as _LineIterator
 
 
@@ -22,6 +23,10 @@ class LineIterator(_LineIterator):
         self.msg_queue = msg_queue
 
         self.id: str = uuid4().hex
+        pid = current_process().pid
+        if pid is None:
+            raise RuntimeError("pid is None")
+        self.pid: int = pid
         self.last_percent: int = 0
 
         super().__init__(*args, **kwargs)
@@ -35,8 +40,8 @@ class LineIterator(_LineIterator):
         else:
             path_name = self.path.name
         description = f"{'  '*len(self.priority)}{path_name}"
-        self.msg_queue.put(dict(id=self.id, type="init", value=description))
-        self.msg_queue.put(dict(id=self.id, type="total", value=self.total_lines))
+        self.msg_queue.put(dict(pid=self.pid, type="init", value=description))
+        self.msg_queue.put(dict(pid=self.pid, type="total", value=self.total_lines))
 
     @property
     def next(self) -> str:
@@ -49,5 +54,5 @@ class LineIterator(_LineIterator):
             return
         percent = int(self.line / self.total_lines * 100)
         if percent > self.last_percent:
-            self.msg_queue.put(dict(id=self.id, type="current", value=self.line))
+            self.msg_queue.put(dict(pid=self.pid, type="current", value=self.line))
             self.last_percent = percent
