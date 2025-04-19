@@ -35,7 +35,7 @@ def fromCode(
     msg_queue: Optional[Queue] = None,
 ) -> ichier.Design:
     args_array = []
-    for item in parseInclude(code):
+    for item in parseInclude(file=str(path), code=code):
         args_array.append((item, path, msg_queue))
     # designs = [worker(*args) for args in args_array]
     with Pool() as pool:
@@ -62,7 +62,7 @@ def worker(
 ) -> ichier.Design:
     try:
         if isinstance(item, CodeItem):
-            design = item.load(path=path, msg_queue=msg_queue)
+            design = item.load(msg_queue=msg_queue)
         elif isinstance(item, FileItem):
             path = item.path
             design = item.load(msg_queue=msg_queue)
@@ -86,25 +86,43 @@ def removeComments(code: str) -> str:
 
 
 def parseInclude(
-    code: str,
     *,
+    file: Optional[str] = None,
+    code: Optional[str] = None,
     queue: Optional[list] = None,
-    priority: tuple = (),
+    _priority: tuple = (),
 ) -> List[Union[CodeItem, FileItem]]:
+    path = None
+    if file is None and code is None:
+        raise ValueError("file and code cannot be None at the same time")
+    elif file is not None:
+        path = Path(file)
+        if code is None:
+            code = path.read_text(encoding="utf-8")
+    elif code is not None:
+        pass
+    else:
+        raise ValueError("file and code cannot be both None")
     if queue is None:
         queue = []
-    if not priority:
-        queue.append(CodeItem(priority=priority, code=code))
+    if not _priority:
+        queue.append(
+            CodeItem(
+                priority=_priority,
+                code=code,
+                path=path,
+            )
+        )
     for i, line in enumerate(removeComments(code).splitlines()):
         if line.upper().startswith(".INCLUDE"):
             if m := re.match(r"\.INCLUDE\s+\"?([^\"\s]*)\"?", line, re.IGNORECASE):
-                file_priority = priority + (i + 1,)
+                file_priority = _priority + (i + 1,)
                 path = Path(os.path.expandvars(m.group(1))).expanduser()
                 queue.append(FileItem(priority=file_priority, path=path, code=""))
                 parseInclude(
                     code=path.read_text(encoding="utf-8"),
                     queue=queue,
-                    priority=file_priority,
+                    _priority=file_priority,
                 )
             else:
                 raise SpiceIncludeError(
@@ -117,29 +135,28 @@ def parseInclude(
 class CodeItem:
     priority: tuple
     code: str = field(repr=False)
+    path: Optional[Path] = None
 
     def load(
         self,
-        path: Optional[Union[str, Path]] = None,
         msg_queue: Optional[Queue] = None,
     ) -> ichier.Design:
         lineiter = LineIterator(
             data=self.code.splitlines(),
-            path=path,
+            path=self.path,
             priority=self.priority,
             msg_queue=msg_queue,
         )
         lineiter.priority = self.priority
-        if path is not None:
-            path = Path(path)
-            lineiter.path = path
+        if self.path is not None:
+            lineiter.path = self.path
         design = parse(
             lineiter=lineiter,
             priority=self.priority,
         )
-        if path is not None:
-            design.path = path
-            design.name = path.name
+        if self.path is not None:
+            design.path = self.path
+            design.name = self.path.name
         return design
 
 
@@ -153,12 +170,8 @@ class FileItem:
         self,
         msg_queue: Optional[Queue] = None,
     ) -> ichier.Design:
-        path = Path(self.path)
-        design = CodeItem(
+        return CodeItem(
             priority=self.priority,
-            code=path.read_text(encoding="utf-8"),
-        ).load(path=path, msg_queue=msg_queue)
-        if path is not None:
-            design.path = path
-            design.name = path.name
-        return design
+            code=self.path.read_text(encoding="utf-8"),
+            path=self.path,
+        ).load(msg_queue=msg_queue)

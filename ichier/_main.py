@@ -8,9 +8,6 @@ import re
 
 from . import release
 from .parser import fromVerilog, fromSpice
-
-# from .parser import verilog as pv
-# from .parser import spice as ps
 import ichier
 
 
