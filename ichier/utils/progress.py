@@ -140,6 +140,11 @@ class LoadTask:
 class Daemon:
     msg_queue: Queue = Manager().Queue()
 
+    def __new__(cls) -> Daemon:
+        while not cls.msg_queue.empty():
+            cls.msg_queue.get()
+        return super().__new__(cls)
+
     def worker(self, clear: bool = True) -> None:
         progress = LoadProgress(clear=clear)
         task_map: Dict[int, LoadTask] = {}
