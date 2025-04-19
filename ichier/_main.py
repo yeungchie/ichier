@@ -8,6 +8,9 @@ import re
 
 from . import release
 from .parser import fromVerilog, fromSpice
+
+# from .parser import verilog as pv
+# from .parser import spice as ps
 import ichier
 
 
@@ -40,6 +43,11 @@ def parse_arguments():
         default="auto",
         help="Language for tips",
     )
+    parse.add_argument(
+        "--preserve-progress",
+        action="store_true",
+        help="Preserve progress bar after parsing",
+    )
 
     command.add_parser(
         "version",
@@ -54,6 +62,7 @@ def parse_arguments():
 def load_file(
     file: Union[str, Path],
     format: Optional[Literal["spice", "verilog"]] = None,
+    preserve_progress: bool = False,
 ) -> Optional[ichier.Design]:
     if format is None:
         if ":" in str(file):
@@ -80,7 +89,7 @@ def load_file(
         raise ValueError(f"Unsupported format: {format}")
 
     try:
-        return loader(file)
+        return loader(file, preserve_progress=preserve_progress)
     except KeyboardInterrupt:
         return
     except FileNotFoundError as e:
@@ -90,9 +99,10 @@ def load_file(
 try:
     from .utils.progress import Daemon
 
-    def load_verilog(file) -> ichier.Design:
+    def load_verilog(file, **kwargs) -> ichier.Design:
         PD = Daemon()
-        pdp = Process(target=PD.worker, daemon=True)
+        clear_progress = not kwargs.get("preserve_progress", True)
+        pdp = Process(target=PD.worker, daemon=True, args=(clear_progress,))
         pdp.start()
         design = fromVerilog(file, msg_queue=PD.msg_queue)
         design.modules.rebuild(mute=True, verilog_style=True)
@@ -101,9 +111,10 @@ try:
             pdp.terminate()
         return design
 
-    def load_spice(file) -> ichier.Design:
+    def load_spice(file, **kwargs) -> ichier.Design:
         PD = Daemon()
-        pdp = Process(target=PD.worker, daemon=True)
+        clear_progress = not kwargs.get("preserve_progress", True)
+        pdp = Process(target=PD.worker, daemon=True, args=(clear_progress,))
         pdp.start()
         design = fromSpice(file, msg_queue=PD.msg_queue)
         design.modules.rebuild(mute=True)
@@ -114,12 +125,12 @@ try:
 
 except ImportError:
 
-    def load_verilog(file) -> ichier.Design:
+    def load_verilog(file, **kwargs) -> ichier.Design:
         design = fromVerilog(file)
         design.modules.rebuild(mute=True, verilog_style=True)
         return design
 
-    def load_spice(file) -> ichier.Design:
+    def load_spice(file, **kwargs) -> ichier.Design:
         design = fromSpice(file)
         design.modules.rebuild(mute=True)
         return design
@@ -205,7 +216,10 @@ def main():
             raise ValueError(f"Unsupported language: {lang}")
 
         start = perf_counter()
-        design = load_file(args.file)
+        design = load_file(
+            file=args.file,
+            preserve_progress=args.preserve_progress,
+        )
         if design is None:
             return
         used = perf_counter() - start

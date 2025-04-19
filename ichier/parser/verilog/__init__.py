@@ -118,7 +118,6 @@ def parseInclude(
         queue = []
     if priority is None:
         priority = ()
-    if not preprocessed:
         code = PreProc.process(code)
     if not priority:
         queue.append(

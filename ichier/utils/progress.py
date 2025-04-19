@@ -28,7 +28,7 @@ from multiprocessing import Manager
 class LoadProgress:
     def __init__(self, *, clear: bool = True) -> None:
         self.progress = Progress(
-            SpinnerColumn(),
+            SpinnerColumn(spinner_name="clock", finished_text="✔ "),
             TextColumn("{task.description}"),
             BarColumn(bar_width=get_terminal_size().columns),
             TaskProgressColumn(),
@@ -140,8 +140,8 @@ class LoadTask:
 class Daemon:
     msg_queue: Queue = Manager().Queue()
 
-    def worker(self) -> None:
-        progress = LoadProgress()
+    def worker(self, clear: bool = True) -> None:
+        progress = LoadProgress(clear=clear)
         task_map: Dict[int, LoadTask] = {}
         with progress:
             while True:
