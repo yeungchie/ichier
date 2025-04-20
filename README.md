@@ -1,10 +1,6 @@
 <h1 align="center"><span style="color:red"><u>I</u></span>ntegrated <span style="color:red"><u>C</u></span>ircuit <span style="color:red"><u>Hier</u></span>archy</h1>
 
-!["PyPI"](https://img.shields.io/pypi/v/ichier)
-!["PyPI"](https://img.shields.io/pypi/format/ichier)
-!["PyPI"](https://img.shields.io/pypi/pyversions/ichier)
-!["PyPI"](https://img.shields.io/pypi/dm/ichier)
-!["PyPI"](https://img.shields.io/pypi/l/ichier)
+!["PyPI"](https://img.shields.io/pypi/v/ichier) !["PyPI"](https://img.shields.io/pypi/format/ichier) !["PyPI"](https://img.shields.io/pypi/pyversions/ichier) !["PyPI"](https://img.shields.io/pypi/dm/ichier) !["PyPI"](https://img.shields.io/pypi/l/ichier)
 
 ## 做什么用？
 
@@ -22,14 +18,10 @@
 ## 安装
 
 ```bash
-pip install ichier
+pip install ichier[full]
 ```
 
-推荐再安装 `ipython` 和 `rich` 库。
-
-```bash
-pip install ipython rich
-```
+> 为了更好的使用体验，请指定 `[full]` 进行安装，否则将不会安装 `ipython` 和 `rich` 库。
 
 ## 描述一个电路
 
