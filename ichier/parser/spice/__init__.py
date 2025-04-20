@@ -12,18 +12,12 @@ from .parser import parse, SpiceIncludeError
 import ichier
 
 
-def fromFile(
-    file: Union[str, Path],
-    *,
-    rebuild: bool = False,
-    msg_queue: Optional[Queue] = None,
-) -> ichier.Design:
+def fromFile(file: Union[str, Path], *, rebuild: bool = False) -> ichier.Design:
     path = Path(file)
     return fromCode(
         path.read_text(encoding="utf-8"),
         rebuild=rebuild,
         path=path,
-        msg_queue=msg_queue,
     )
 
 
@@ -32,10 +26,8 @@ def fromCode(
     *,
     rebuild: bool = False,
     path: Optional[Path] = None,
-    msg_queue: Optional[Queue] = None,
 ) -> ichier.Design:
-    args_array = [(item, msg_queue) for item in parseInclude(file=str(path), code=code)]
-    # designs = [worker(*args) for args in args_array]
+    args_array = [(item,) for item in parseInclude(file=str(path), code=code)]
     with Pool() as pool:
         designs = pool.starmap(worker, args_array)
     design = ichier.Design()

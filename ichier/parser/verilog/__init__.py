@@ -13,18 +13,12 @@ from .parser import VerilogParser
 __all__ = []
 
 
-def fromFile(
-    file: Union[str, Path],
-    *,
-    rebuild: bool = False,
-    msg_queue: Optional[Queue] = None,
-) -> Design:
+def fromFile(file: Union[str, Path], *, rebuild: bool = False) -> Design:
     path = Path(file)
     return fromCode(
         path.read_text(encoding="utf-8"),
         rebuild=rebuild,
         path=path,
-        msg_queue=msg_queue,
     )
 
 
@@ -33,10 +27,8 @@ def fromCode(
     *,
     rebuild: bool = False,
     path: Optional[Union[str, Path]] = None,
-    msg_queue: Optional[Queue] = None,
 ) -> Design:
-    args_array = [(item, msg_queue) for item in parseInclude(file=str(path), code=code)]
-    # designs = [worker(*args) for args in args_array]
+    args_array = [(item,) for item in parseInclude(file=str(path), code=code)]
     with Pool() as pool:
         designs = pool.starmap(worker, args_array)
     design = Design()
