@@ -10,3 +10,4 @@ parsetab.py
 .pytest_cache/
 .ruff_cache/
 packed
+*.pyc

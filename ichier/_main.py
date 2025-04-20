@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-from multiprocessing import Process
+from multiprocessing import Pool
 from pathlib import Path
 from textwrap import dedent
 from typing import Literal, Optional, Union
@@ -8,6 +8,8 @@ import re
 
 from . import release
 from .parser import fromVerilog, fromSpice
+from .parser import verilog as vparser
+from .parser import spice as sparser
 import ichier
 
 
@@ -40,6 +42,11 @@ def parse_arguments():
         default="auto",
         help="Language for tips",
     )
+    parse.add_argument(
+        "--preserve-progress",
+        action="store_true",
+        help="Preserve progress bar after parsing",
+    )
 
     command.add_parser(
         "version",
@@ -54,6 +61,7 @@ def parse_arguments():
 def load_file(
     file: Union[str, Path],
     format: Optional[Literal["spice", "verilog"]] = None,
+    preserve_progress: bool = False,
 ) -> Optional[ichier.Design]:
     if format is None:
         if ":" in str(file):
@@ -80,7 +88,7 @@ def load_file(
         raise ValueError(f"Unsupported format: {format}")
 
     try:
-        return loader(file)
+        return loader(file, preserve_progress=preserve_progress)
     except KeyboardInterrupt:
         return
     except FileNotFoundError as e:
@@ -90,36 +98,52 @@ def load_file(
 try:
     from .utils.progress import Daemon
 
-    def load_verilog(file) -> ichier.Design:
+    def load_verilog(file, **kwargs) -> ichier.Design:
         PD = Daemon()
-        pdp = Process(target=PD.worker, daemon=True)
-        pdp.start()
-        design = fromVerilog(file, msg_queue=PD.msg_queue)
+        args_array = [(item, PD.msg_queue) for item in vparser.parseInclude(file=file)]
+        with Pool() as pool:
+            result = pool.starmap_async(vparser.worker, args_array)
+            PD.worker(clear=not kwargs.get("preserve_progress", False))
+            designs = result.get()
+        design = ichier.Design()
+        for d in designs:
+            design.includeOtherDesign(d)
         design.modules.rebuild(mute=True, verilog_style=True)
-        pdp.join(300)
-        if pdp.is_alive():
-            pdp.terminate()
+        path = Path(file)
+        design.path = path
+        design.name = path.name
+        for m in design.modules:
+            if m.path is None:
+                m.path = path
         return design
 
-    def load_spice(file) -> ichier.Design:
+    def load_spice(file, **kwargs) -> ichier.Design:
         PD = Daemon()
-        pdp = Process(target=PD.worker, daemon=True)
-        pdp.start()
-        design = fromSpice(file, msg_queue=PD.msg_queue)
+        args_array = [(item, PD.msg_queue) for item in sparser.parseInclude(file=file)]
+        with Pool() as pool:
+            result = pool.starmap_async(sparser.worker, args_array)
+            PD.worker(clear=not kwargs.get("preserve_progress", False))
+            designs = result.get()
+        design = ichier.Design()
+        for d in designs:
+            design.includeOtherDesign(d)
         design.modules.rebuild(mute=True)
-        pdp.join(300)
-        if pdp.is_alive():
-            pdp.terminate()
+        path = Path(file)
+        design.path = path
+        design.name = path.name
+        for m in design.modules:
+            if m.path is None:
+                m.path = path
         return design
 
 except ImportError:
 
-    def load_verilog(file) -> ichier.Design:
+    def load_verilog(file, **kwargs) -> ichier.Design:
         design = fromVerilog(file)
         design.modules.rebuild(mute=True, verilog_style=True)
         return design
 
-    def load_spice(file) -> ichier.Design:
+    def load_spice(file, **kwargs) -> ichier.Design:
         design = fromSpice(file)
         design.modules.rebuild(mute=True)
         return design
@@ -205,7 +229,10 @@ def main():
             raise ValueError(f"Unsupported language: {lang}")
 
         start = perf_counter()
-        design = load_file(args.file)
+        design = load_file(
+            file=args.file,
+            preserve_progress=args.preserve_progress,
+        )
         if design is None:
             return
         used = perf_counter() - start

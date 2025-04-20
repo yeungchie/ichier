@@ -3,6 +3,7 @@ from queue import Queue
 from pathlib import Path
 from typing import Optional, Tuple, Union
 from uuid import uuid4
+from multiprocessing import current_process
 from icutk.lex import BaseLexer, LexToken
 from ichier.utils.escape import EscapeString
 
@@ -47,6 +48,10 @@ class VerilogLexer(BaseLexer):
         self.msg_queue = msg_queue
 
         self.id: str = uuid4().hex
+        pid = current_process().pid
+        if pid is None:
+            raise RuntimeError("pid is None")
+        self.pid: int = pid
         self.total_lines: int = 0
         self.last_percent: int = 0
 
@@ -69,9 +74,9 @@ class VerilogLexer(BaseLexer):
             path_name = "Verilog"
         else:
             path_name = self.path.name
-        description = f"{'  '*len(self.priority)}{path_name}"
-        self.msg_queue.put(dict(id=self.id, type="init", value=description))
-        self.msg_queue.put(dict(id=self.id, type="total", value=self.total_lines))
+        description = f"{'  ' * len(self.priority)}{path_name}"
+        self.msg_queue.put(dict(pid=self.pid, type="init", value=description))
+        self.msg_queue.put(dict(pid=self.pid, type="total", value=self.total_lines))
 
     def token(self) -> Optional[LexToken]:
         t = super().token()
@@ -93,14 +98,14 @@ class VerilogLexer(BaseLexer):
         percent = int(self.lexer.lineno / self.total_lines * 100)
         if percent > self.last_percent:
             self.msg_queue.put(
-                dict(id=self.id, type="current", value=self.lexer.lineno)
+                dict(pid=self.pid, type="current", value=self.lexer.lineno)
             )
             self.last_percent = percent
 
     def cb_done(self) -> None:
         if self.msg_queue is None:
             return
-        self.msg_queue.put(dict(id=self.id, type="done"))
+        self.msg_queue.put(dict(pid=self.pid, type="done"))
 
     def t_ESC_ID(self, t: LexToken):
         r"\\\S+"

@@ -32,6 +32,9 @@ setup(
     packages=find_packages(exclude=["tests"]),
     python_requires=">=3.8",
     install_requires=Path("requirements.txt").read_text("utf-8").split(),
+    extras_require={
+        "full": ["ipython", "rich"],
+    },
     keywords=[
         PROJECT,
         "verilog",

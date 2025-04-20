@@ -1,13 +1,7 @@
 from __future__ import annotations
-from multiprocessing import get_start_method
-
-# 不支持 spawn 进程显示进度条
-# 还没想好怎么改
-if get_start_method() != "fork":
-    raise ImportError("multiprocessing must be started with fork")
-
+from dataclasses import dataclass
 from queue import Queue
-from typing import Dict, List, Optional, overload
+from typing import Any, Dict, List, Literal, Optional, overload
 from rich.console import Console
 from rich.progress import (
     Task,
@@ -27,7 +21,7 @@ from multiprocessing import Manager
 class LoadProgress:
     def __init__(self, *, clear: bool = True) -> None:
         self.progress = Progress(
-            SpinnerColumn(),
+            SpinnerColumn(spinner_name="clock", finished_text="✔ "),
             TextColumn("{task.description}"),
             BarColumn(bar_width=get_terminal_size().columns),
             TaskProgressColumn(),
@@ -139,28 +133,40 @@ class LoadTask:
 class Daemon:
     msg_queue: Queue = Manager().Queue()
 
-    def worker(self) -> None:
-        progress = LoadProgress()
-        task_map: Dict[str, LoadTask] = {}
+    def __new__(cls) -> Daemon:
+        while not cls.msg_queue.empty():
+            cls.msg_queue.get()
+        return super().__new__(cls)
+
+    def worker(self, clear: bool = True) -> None:
+        progress = LoadProgress(clear=clear)
+        task_map: Dict[int, LoadTask] = {}
         with progress:
             while True:
                 if progress.task_ids and progress.finished:
                     break
-                msg = self.msg_queue.get()
-                if msg["type"] == "init":
-                    task_map[msg["id"]] = progress.task(
-                        progress.add(description=msg["value"])
+                msg = Stream(**self.msg_queue.get())
+                if msg.type == "init":
+                    task_map[msg.pid] = progress.task(
+                        progress.add(description=msg.value)
                     )
                 else:
-                    if msg["id"] not in task_map:
+                    if msg.pid not in task_map:
                         continue
-                    task = task_map[msg["id"]]
-                    if msg["type"] == "total":
-                        task.total = msg["value"]
-                    elif msg["type"] == "current":
-                        task.current = msg["value"]
-                    elif msg["type"] == "done":
+                    task = task_map[msg.pid]
+                    if msg.type == "total":
+                        task.total = msg.value
+                    elif msg.type == "current":
+                        task.current = msg.value
+                    elif msg.type == "done":
                         task.done()
+
+
+@dataclass
+class Stream:
+    pid: int
+    type: Literal["init", "total", "current", "done"]
+    value: Any = None
 
 
 if __name__ == "__main__":
