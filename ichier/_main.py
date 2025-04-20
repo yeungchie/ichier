@@ -103,7 +103,7 @@ try:
         args_array = [(item, PD.msg_queue) for item in vparser.parseInclude(file=file)]
         with Pool() as pool:
             result = pool.starmap_async(vparser.worker, args_array)
-            PD.worker(clear=not kwargs.get("preserve_progress", True))
+            PD.worker(clear=not kwargs.get("preserve_progress", False))
             designs = result.get()
         design = ichier.Design()
         for d in designs:
@@ -122,7 +122,7 @@ try:
         args_array = [(item, PD.msg_queue) for item in sparser.parseInclude(file=file)]
         with Pool() as pool:
             result = pool.starmap_async(sparser.worker, args_array)
-            PD.worker(clear=not kwargs.get("preserve_progress", True))
+            PD.worker(clear=not kwargs.get("preserve_progress", False))
             designs = result.get()
         design = ichier.Design()
         for d in designs:
