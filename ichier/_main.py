@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-from multiprocessing import Process
+from multiprocessing import Pool
 from pathlib import Path
 from textwrap import dedent
 from typing import Literal, Optional, Union
@@ -8,6 +8,8 @@ import re
 
 from . import release
 from .parser import fromVerilog, fromSpice
+from .parser import verilog as vparser
+from .parser import spice as sparser
 import ichier
 
 
@@ -98,26 +100,40 @@ try:
 
     def load_verilog(file, **kwargs) -> ichier.Design:
         PD = Daemon()
-        clear_progress = not kwargs.get("preserve_progress", True)
-        pdp = Process(target=PD.worker, daemon=True, args=(clear_progress,))
-        pdp.start()
-        design = fromVerilog(file, msg_queue=PD.msg_queue)
+        args_array = [(item, PD.msg_queue) for item in vparser.parseInclude(file=file)]
+        with Pool() as pool:
+            result = pool.starmap_async(vparser.worker, args_array)
+            PD.worker(clear=not kwargs.get("preserve_progress", True))
+            designs = result.get()
+        design = ichier.Design()
+        for d in designs:
+            design.includeOtherDesign(d)
         design.modules.rebuild(mute=True, verilog_style=True)
-        pdp.join(300)
-        if pdp.is_alive():
-            pdp.terminate()
+        path = Path(file)
+        design.path = path
+        design.name = path.name
+        for m in design.modules:
+            if m.path is None:
+                m.path = path
         return design
 
     def load_spice(file, **kwargs) -> ichier.Design:
         PD = Daemon()
-        clear_progress = not kwargs.get("preserve_progress", True)
-        pdp = Process(target=PD.worker, daemon=True, args=(clear_progress,))
-        pdp.start()
-        design = fromSpice(file, msg_queue=PD.msg_queue)
+        args_array = [(item, PD.msg_queue) for item in sparser.parseInclude(file=file)]
+        with Pool() as pool:
+            result = pool.starmap_async(sparser.worker, args_array)
+            PD.worker(clear=not kwargs.get("preserve_progress", True))
+            designs = result.get()
+        design = ichier.Design()
+        for d in designs:
+            design.includeOtherDesign(d)
         design.modules.rebuild(mute=True)
-        pdp.join(300)
-        if pdp.is_alive():
-            pdp.terminate()
+        path = Path(file)
+        design.path = path
+        design.name = path.name
+        for m in design.modules:
+            if m.path is None:
+                m.path = path
         return design
 
 except ImportError:

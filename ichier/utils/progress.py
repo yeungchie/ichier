@@ -1,12 +1,5 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from multiprocessing import get_start_method
-
-# 不支持 spawn 进程显示进度条
-# 还没想好怎么改
-if get_start_method() != "fork":
-    raise ImportError("multiprocessing must be started with fork")
-
 from queue import Queue
 from typing import Any, Dict, List, Literal, Optional, overload
 from rich.console import Console
