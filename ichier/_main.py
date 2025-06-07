@@ -36,6 +36,11 @@ def parse_arguments():
 
     parse.add_argument("file", type=str, help="Path to the circuit file")
     parse.add_argument(
+        "--rebuild",
+        action="store_true",
+        help="Rebuild the design after parsing",
+    )
+    parse.add_argument(
         "--lang",
         type=str,
         choices=["auto", "en", "zh"],
@@ -61,6 +66,7 @@ def parse_arguments():
 def load_file(
     file: Union[str, Path],
     format: Optional[Literal["spice", "verilog"]] = None,
+    rebuild: bool = False,
     preserve_progress: bool = False,
 ) -> Optional[ichier.Design]:
     if format is None:
@@ -82,13 +88,18 @@ def load_file(
 
     if format == "spice":
         loader = load_spice
+        verilog_style = False
     elif format == "verilog":
         loader = load_verilog
+        verilog_style = True
     else:
         raise ValueError(f"Unsupported format: {format}")
 
     try:
-        return loader(file, preserve_progress=preserve_progress)
+        design = loader(file, preserve_progress=preserve_progress)
+        if rebuild:
+            design.modules.rebuild(mute=True, verilog_style=verilog_style)
+        return design
     except KeyboardInterrupt:
         return
     except FileNotFoundError as e:
@@ -108,7 +119,6 @@ try:
         design = ichier.Design()
         for d in designs:
             design.includeOtherDesign(d)
-        design.modules.rebuild(mute=True, verilog_style=True)
         path = Path(file)
         design.path = path
         design.name = path.name
@@ -127,7 +137,6 @@ try:
         design = ichier.Design()
         for d in designs:
             design.includeOtherDesign(d)
-        design.modules.rebuild(mute=True)
         path = Path(file)
         design.path = path
         design.name = path.name
@@ -140,12 +149,10 @@ except ImportError:
 
     def load_verilog(file, **kwargs) -> ichier.Design:
         design = fromVerilog(file)
-        design.modules.rebuild(mute=True, verilog_style=True)
         return design
 
     def load_spice(file, **kwargs) -> ichier.Design:
         design = fromSpice(file)
-        design.modules.rebuild(mute=True)
         return design
 
 
@@ -231,6 +238,7 @@ def main():
         start = perf_counter()
         design = load_file(
             file=args.file,
+            rebuild=args.rebuild,
             preserve_progress=args.preserve_progress,
         )
         if design is None:
